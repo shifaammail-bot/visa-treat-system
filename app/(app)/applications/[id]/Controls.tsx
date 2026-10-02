@@ -56,7 +56,7 @@ export function DocumentButtons({
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         {quotationNumber ? (
-          <Link href={`/documents/${id}?type=quotation`} target="_blank" className={secondaryButtonClass}>
+          <Link href={`/documents/${id}?type=quotation`} className={secondaryButtonClass}>
             <FileText className="h-4 w-4" />
             Quotation {quotationNumber}
           </Link>
@@ -76,7 +76,7 @@ export function DocumentButtons({
         )}
 
         {invoiceNumber ? (
-          <Link href={`/documents/${id}?type=invoice`} target="_blank" className={darkButtonClass}>
+          <Link href={`/documents/${id}?type=invoice`} className={darkButtonClass}>
             <FileCheck2 className="h-4 w-4" />
             Invoice {invoiceNumber}
           </Link>

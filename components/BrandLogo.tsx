@@ -11,13 +11,45 @@ type Props = {
 
 /**
  * Real logo files, per issuer slug. To swap a wordmark for a real logo, drop
- * the files in public/logos and add one line here.
+ * the files in public/logos and add one line here, e.g.
+ *   arabiers: { dark: "/logos/arabiers-on-dark.png", light: "/logos/arabiers-on-light.png" },
  */
-const LOGOS: Record<string, { dark: string; light: string }> = {
-  visatreat: { dark: "/logos/visatreat-on-dark.svg", light: "/logos/visatreat-on-light.svg" },
-};
+const LOGOS: Record<string, { dark: string; light: string }> = {};
+
+/**
+ * The Visa Treat logo, drawn inline from public/logos/visatreat-*.svg so the
+ * wordmark uses the app's Manrope instead of the file's DejaVu Sans, which
+ * most Windows machines don't have.
+ */
+function VisaTreatLogo({ on, className }: { on: "dark" | "light"; className: string }) {
+  return (
+    <svg viewBox="0 0 560 150" className={`w-auto ${className}`} role="img" aria-label="Visa Treat">
+      <path
+        d="M34 46 L66 106 L98 46"
+        fill="none"
+        stroke="#2FE0C2"
+        strokeWidth="18"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <text
+        x="122"
+        y="100"
+        fontSize="68"
+        fontWeight="800"
+        letterSpacing="-2"
+        style={{ fontFamily: "var(--font-manrope), system-ui, sans-serif" }}
+      >
+        <tspan fill={on === "dark" ? "#FFFFFF" : "#0B0C10"}>Visa</tspan>
+        <tspan fill="#2FE0C2">Treat</tspan>
+      </text>
+    </svg>
+  );
+}
 
 export function BrandLogo({ slug, tradeName, accentColour, on = "light", className = "h-7" }: Props) {
+  if (slug === "visatreat") return <VisaTreatLogo on={on} className={className} />;
+
   const logo = LOGOS[slug];
   if (logo) {
     return <img src={logo[on]} alt={tradeName} className={`w-auto ${className}`} />;

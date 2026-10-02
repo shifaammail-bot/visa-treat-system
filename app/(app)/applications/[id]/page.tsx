@@ -1,5 +1,3 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { PLACEHOLDER_TERMS, getProducts } from "@/lib/catalogue";
 import { getContext, getStaffList, loadApplication, nameOf } from "@/lib/context";
 import {
@@ -17,6 +15,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Client, Payment } from "@/lib/types";
 import { balance, margin, money } from "@/lib/vat";
 import { BrandLogo } from "@/components/BrandLogo";
+import { PageHeader } from "@/components/PageHeader";
+import { SaleSteps } from "@/components/SaleSteps";
 import { Card, Notice, StatusBadge, TableLink } from "@/components/ui";
 import { DocumentButtons, PaymentForm, StatusButtons } from "./Controls";
 import { QuoteForm } from "./QuoteForm";
@@ -54,31 +54,39 @@ export default async function ApplicationPage({ params }: { params: { id: string
   const ready = !!app.issued_by && num(app.grand_total) > 0;
   const taxInvoice = !!issuer && issuer.vat_registered && issuer.trn !== null;
 
+  // Where this sale lives in the nav, for the breadcrumb and Back.
+  const parent = app.invoice_number
+    ? { label: "Invoices", href: "/invoices" }
+    : app.quotation_number
+      ? { label: "Quotations", href: "/quotations" }
+      : app.status === "enquiry"
+        ? { label: "Leads", href: "/leads" }
+        : { label: "Applications", href: "/applications" };
+
   return (
     <>
-      <header className="border-b border-navy/10 px-4 py-6 md:px-8">
-        <Link
-          href={app.status === "enquiry" ? "/leads" : "/applications"}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-navy/50 hover:text-navy"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {app.status === "enquiry" ? "Leads" : "Applications"}
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl font-extrabold tracking-tight">{app.ref}</h1>
-              <StatusBadge status={app.status} />
-            </div>
-            <p className="mt-1 text-sm text-navy/60">
-              {client?.full_name} · {app.product_name}
-            </p>
-          </div>
-          {issuer && (
-            <BrandLogo slug={issuer.slug} tradeName={issuer.trade_name} accentColour={issuer.accent_colour} />
-          )}
-        </div>
-      </header>
+      <PageHeader
+        title={app.ref}
+        meta={<StatusBadge status={app.status} />}
+        description={`${client?.full_name ?? "Unknown client"} · ${app.product_name}`}
+        crumbs={[parent]}
+      >
+        {issuer && (
+          <BrandLogo slug={issuer.slug} tradeName={issuer.trade_name} accentColour={issuer.accent_colour} />
+        )}
+      </PageHeader>
+
+      <div className="border-b border-navy/10 bg-[#FAFAFB] px-4 py-4 md:px-8">
+        <SaleSteps
+          direct={app.source === "direct"}
+          quoted={ready}
+          invoiced={!!app.invoice_number}
+          paid={!!app.invoice_number && owed <= 0}
+          submitted={!!app.submitted_at || ["submitted", "approved", "rejected"].includes(app.status)}
+          decision={app.status === "approved" || app.status === "rejected" ? app.status : null}
+          cancelled={app.status === "cancelled"}
+        />
+      </div>
 
       <div className="grid gap-6 px-4 py-6 md:px-8 xl:grid-cols-[1fr_360px]">
         <div className="min-w-0 space-y-6">

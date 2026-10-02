@@ -14,8 +14,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (session.status === "no-access") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-navy px-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+      <main className="flex min-h-screen items-center justify-center bg-[#F6F7F9] px-4">
+        <div className="w-full max-w-sm rounded-2xl border border-navy/10 bg-white p-6 shadow-sm">
           <h1 className="text-lg font-bold">No staff access</h1>
           <p className="mt-2 text-sm text-navy/70">
             You&apos;re signed in as <strong>{session.email}</strong>, but there&apos;s no active

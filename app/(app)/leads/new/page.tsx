@@ -31,7 +31,15 @@ export default async function NewLeadPage({ searchParams }: { searchParams: { cl
   return (
     <>
       <PageHeader
-        title={existingClient ? "New application" : "New lead"}
+        title="New lead"
+        crumbs={
+          existingClient
+            ? [
+                { label: "Clients", href: "/clients" },
+                { label: existingClient.full_name, href: `/clients/${existingClient.id}` },
+              ]
+            : [{ label: "Leads", href: "/leads" }]
+        }
         description="Saved as an enquiry. Add the price on the next screen to quote it."
       />
       <div className="max-w-3xl px-4 py-8 md:px-8">

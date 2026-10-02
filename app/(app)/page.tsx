@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader title={`Welcome, ${firstName}`} description={`${scope} · this month`}>
+      <PageHeader home title={`Welcome, ${firstName}`} description={`${scope} · this month`}>
         <div className="flex flex-wrap gap-2">
           {can.createLead(ctx.staff.role) && (
             <Link href="/leads/new" className={secondaryButtonClass}>

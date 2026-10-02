@@ -32,6 +32,16 @@ export default async function NewSalePage({
     <>
       <PageHeader
         title={kind === "invoice" ? "New invoice" : "New quotation"}
+        crumbs={
+          existingClient
+            ? [
+                { label: "Clients", href: "/clients" },
+                { label: existingClient.full_name, href: `/clients/${existingClient.id}` },
+              ]
+            : kind === "invoice"
+              ? [{ label: "Invoices", href: "/invoices" }]
+              : [{ label: "Quotations", href: "/quotations" }]
+        }
         description="A direct sale, issued in one step. Campaign enquiries go in Leads instead."
       />
       <div className="max-w-4xl px-4 py-8 md:px-8">

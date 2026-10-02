@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { canSeeClient, getContext, getStaffList, nameOf } from "@/lib/context";
 import { can, canSeeApplication } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { APPLICATION_ROW_SELECT, type ApplicationRow, type Client } from "@/lib/types";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { Card, buttonClass, secondaryButtonClass } from "@/components/ui";
+import { PageHeader } from "@/components/PageHeader";
 import { ClientForm } from "../ClientForm";
 
 export default async function ClientPage({ params }: { params: { id: string } }) {
@@ -30,38 +31,32 @@ export default async function ClientPage({ params }: { params: { id: string } })
 
   return (
     <>
-      <header className="border-b border-navy/10 px-4 py-6 md:px-8">
-        <Link
-          href="/clients"
-          className="inline-flex items-center gap-1 text-sm font-semibold text-navy/50 hover:text-navy"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Clients
-        </Link>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-extrabold tracking-tight">{client.full_name}</h1>
-          <div className="flex flex-wrap gap-2">
-            {can.createLead(staff.role) && (
-              <Link href={`/leads/new?client=${client.id}`} className={secondaryButtonClass}>
+      <PageHeader
+        title={client.full_name}
+        description={[client.nationality, client.phone, client.email].filter(Boolean).join(" · ")}
+        crumbs={[{ label: "Clients", href: "/clients" }]}
+      >
+        <div className="flex flex-wrap gap-2">
+          {can.createLead(staff.role) && (
+            <Link href={`/leads/new?client=${client.id}`} className={secondaryButtonClass}>
+              <Plus className="h-4 w-4" />
+              New lead
+            </Link>
+          )}
+          {can.editSale(staff.role) && (
+            <>
+              <Link href={`/sales/new?type=quotation&client=${client.id}`} className={secondaryButtonClass}>
                 <Plus className="h-4 w-4" />
-                New lead
+                New quotation
               </Link>
-            )}
-            {can.editSale(staff.role) && (
-              <>
-                <Link href={`/sales/new?type=quotation&client=${client.id}`} className={secondaryButtonClass}>
-                  <Plus className="h-4 w-4" />
-                  New quotation
-                </Link>
-                <Link href={`/sales/new?type=invoice&client=${client.id}`} className={buttonClass}>
-                  <Plus className="h-4 w-4" />
-                  New invoice
-                </Link>
-              </>
-            )}
-          </div>
+              <Link href={`/sales/new?type=invoice&client=${client.id}`} className={buttonClass}>
+                <Plus className="h-4 w-4" />
+                New invoice
+              </Link>
+            </>
+          )}
         </div>
-      </header>
+      </PageHeader>
       <div className="space-y-6 px-4 py-6 md:px-8">
         <Card title={can.editClient(staff.role) ? "Details" : "Details (read-only)"}>
           <ClientForm client={client} readOnly={!can.editClient(staff.role)} />

@@ -7,8 +7,7 @@ import type { Client } from "@/lib/types";
 import { balance, money } from "@/lib/vat";
 import { BrandLogo } from "@/components/BrandLogo";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { secondaryButtonClass } from "@/components/ui";
+import { Breadcrumbs } from "@/components/PageHeader";
 import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -86,23 +85,33 @@ export default async function DocumentPage({
   const date = kind === "invoice" ? app.invoice_date : app.quotation_date;
 
   return (
-    <div className="min-h-screen bg-navy/5 py-8 print:bg-white print:py-0">
+    <div className="min-h-screen bg-[#F6F7F9] py-6 print:bg-white print:py-0">
       <div className="mx-auto mb-4 max-w-[210mm] space-y-3 px-4 print:hidden">
-        {searchParams.new && (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {kind === "invoice" ? "Invoice" : "Quotation"} <strong>{number}</strong> issued.
-          </p>
-        )}
-        <div className="flex flex-wrap justify-between gap-2">
-          <Link href={`/applications/${app.id}`} className={secondaryButtonClass}>
-            <ArrowLeft className="h-4 w-4" />
-            Back to sale
-          </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Breadcrumbs
+            trail={[
+              { label: "Dashboard", href: "/" },
+              kind === "invoice"
+                ? { label: "Invoices", href: "/invoices" }
+                : { label: "Quotations", href: "/quotations" },
+              { label: app.ref, href: `/applications/${app.id}` },
+            ]}
+            current={number}
+          />
           <PrintButton />
         </div>
+        {searchParams.new && (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {kind === "invoice" ? "Invoice" : "Quotation"} <strong>{number}</strong> issued.{" "}
+            <Link href={`/applications/${app.id}`} className="font-bold underline">
+              Open the sale
+            </Link>{" "}
+            to record payments or update its status.
+          </p>
+        )}
       </div>
 
-      <article className="mx-auto max-w-[210mm] bg-white px-8 py-10 shadow-sm sm:px-12 print:max-w-none print:px-0 print:py-0 print:shadow-none">
+      <article className="mx-auto max-w-[210mm] border border-navy/10 bg-white px-8 py-10 shadow-sm sm:px-12 print:border-0 print:max-w-none print:px-0 print:py-0 print:shadow-none">
         {/* Issuer */}
         <header className="flex flex-wrap items-start justify-between gap-6 border-b border-navy/10 pb-6">
           <div>
