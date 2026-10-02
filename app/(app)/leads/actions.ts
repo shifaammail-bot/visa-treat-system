@@ -12,10 +12,6 @@ import type { Source, VisaType } from "@/lib/types";
 export type LeadResult = { error?: string } | null;
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
-const date = (formData: FormData, key: string) => {
-  const value = text(formData, key);
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
-};
 
 export async function createLead(_prev: LeadResult, formData: FormData): Promise<LeadResult> {
   const staff = await requireStaff();
@@ -27,16 +23,11 @@ export async function createLead(_prev: LeadResult, formData: FormData): Promise
   const countryCode = text(formData, "country_code");
   const visaType = text(formData, "visa_type") as VisaType;
   const source = text(formData, "source") as Source;
-  const travelFrom = date(formData, "travel_from");
-  const travelTo = date(formData, "travel_to");
 
   const country = (await getCountries()).find((c) => c.code === countryCode);
   if (!country) return { error: "Choose a destination." };
   if (!(visaType in VISA_TYPE_LABEL)) return { error: "Choose a visa type." };
   if (!(source in LEAD_SOURCE_LABEL)) return { error: "Choose where the lead came from." };
-  if (travelFrom && travelTo && travelTo < travelFrom) {
-    return { error: "The return date is before the travel date." };
-  }
 
   // Who handles it. Consultants always get their own leads.
   let consultant = staff.email;
@@ -77,7 +68,6 @@ export async function createLead(_prev: LeadResult, formData: FormData): Promise
         nationality,
         phone: phone || null,
         email: email || null,
-        passport_no: text(formData, "passport_no").toUpperCase() || null,
       })
       .select("id")
       .single();
@@ -96,8 +86,6 @@ export async function createLead(_prev: LeadResult, formData: FormData): Promise
       product_name: `${country.name} ${VISA_TYPE_LABEL[visaType].toLowerCase()} visa`,
       visa_type: visaType,
       source,
-      travel_from: travelFrom,
-      travel_to: travelTo,
       notes: text(formData, "notes") || null,
       status: "enquiry",
     })

@@ -62,7 +62,7 @@ export function ApplicationsTable({ rows, issuers, staffName, columns, document,
                   <p>{row.product_name}</p>
                   <p className="text-xs text-navy/50">
                     {row.quantity > 1 ? `${row.quantity} guests · ` : ""}
-                    {row.travel_from ? `Travels ${formatDate(row.travel_from)}` : row.country?.name}
+                    {row.country?.name}
                   </p>
                 </td>
               )}

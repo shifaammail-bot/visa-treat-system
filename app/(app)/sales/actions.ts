@@ -16,10 +16,6 @@ export type SaleResult = { error: string; applicationId?: string } | null;
 const METHODS: PaymentMethod[] = ["cash", "card", "bank transfer", "link", "cheque"];
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
-const date = (formData: FormData, key: string) => {
-  const value = text(formData, key);
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
-};
 
 /**
  * A direct sale in one step: client, sale, document number, and optionally
@@ -44,9 +40,6 @@ export async function createSale(_prev: SaleResult, formData: FormData): Promise
   const visaType = (product?.visa_type ?? text(formData, "visa_type")) as VisaType;
   if (!(visaType in VISA_TYPE_LABEL)) return { error: "Choose a visa type." };
 
-  const travelFrom = date(formData, "travel_from");
-  const travelTo = date(formData, "travel_to");
-  if (travelFrom && travelTo && travelTo < travelFrom) return { error: "The return date is before the travel date." };
 
   // Payment taken now (invoices only).
   const paid = kind === "invoice" ? amount(formData, "paid_amount") : 0;
@@ -90,7 +83,6 @@ export async function createSale(_prev: SaleResult, formData: FormData): Promise
         nationality,
         phone: phone || null,
         email: email || null,
-        passport_no: text(formData, "passport_no").toUpperCase() || null,
         client_ref: text(formData, "client_ref") || null,
       })
       .select("id")
@@ -110,8 +102,6 @@ export async function createSale(_prev: SaleResult, formData: FormData): Promise
       client_id: clientId,
       visa_type: visaType,
       source: "direct",
-      travel_from: travelFrom,
-      travel_to: travelTo,
       notes: text(formData, "notes") || null,
       status: "quoted",
     })

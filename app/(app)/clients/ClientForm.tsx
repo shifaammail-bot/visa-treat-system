@@ -33,9 +33,6 @@ export function ClientForm({ client, readOnly }: { client: Client; readOnly: boo
         <Field label="Email">
           <input name="email" type="email" defaultValue={client.email ?? ""} className={inputClass} />
         </Field>
-        <Field label="Passport number">
-          <input name="passport_no" defaultValue={client.passport_no ?? ""} className={`${inputClass} uppercase`} />
-        </Field>
         <Field label="Client's own reference" hint="Printed on their documents.">
           <input name="client_ref" defaultValue={client.client_ref ?? ""} className={inputClass} />
         </Field>

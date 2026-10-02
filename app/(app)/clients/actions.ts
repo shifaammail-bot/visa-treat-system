@@ -32,7 +32,6 @@ export async function updateClient(_prev: ClientResult, formData: FormData): Pro
       nationality,
       phone: phone || null,
       email: email || null,
-      passport_no: text(formData, "passport_no").toUpperCase() || null,
       client_ref: text(formData, "client_ref") || null,
       notes: text(formData, "notes") || null,
     })

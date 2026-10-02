@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import { BRANDS, logoUrl } from "@/lib/brands";
 
 type Props = {
   slug: string;
@@ -10,14 +11,7 @@ type Props = {
 };
 
 /**
- * Real logo files, per issuer slug. To swap a wordmark for a real logo, drop
- * the files in public/logos and add one line here, e.g.
- *   arabiers: { dark: "/logos/arabiers-on-dark.png", light: "/logos/arabiers-on-light.png" },
- */
-const LOGOS: Record<string, { dark: string; light: string }> = {};
-
-/**
- * The Visa Treat logo, drawn inline from public/logos/visatreat-*.svg so the
+ * The Visa Treat logo, drawn inline from public/logos/Visa treat/*.svg so the
  * wordmark uses the app's Manrope instead of the file's DejaVu Sans, which
  * most Windows machines don't have.
  */
@@ -50,9 +44,10 @@ function VisaTreatLogo({ on, className }: { on: "dark" | "light"; className: str
 export function BrandLogo({ slug, tradeName, accentColour, on = "light", className = "h-7" }: Props) {
   if (slug === "visatreat") return <VisaTreatLogo on={on} className={className} />;
 
-  const logo = LOGOS[slug];
+  // Real logo files live in lib/brands.ts (one line per company).
+  const logo = BRANDS[slug]?.logo;
   if (logo) {
-    return <img src={logo[on]} alt={tradeName} className={`w-auto ${className}`} />;
+    return <img src={logoUrl(logo)} alt={tradeName} className={`w-auto object-contain ${className}`} />;
   }
 
   // Placeholder wordmark until the real logo arrives: first word in ink,

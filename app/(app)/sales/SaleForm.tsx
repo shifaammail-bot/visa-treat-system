@@ -61,7 +61,7 @@ export function SaleForm(props: Props) {
           </>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Full name (as on passport)">
+            <Field label="Full name">
               <input name="full_name" required className={inputClass} />
             </Field>
             <Field label="Nationality">
@@ -72,9 +72,6 @@ export function SaleForm(props: Props) {
             </Field>
             <Field label="Email">
               <input name="email" type="email" className={inputClass} />
-            </Field>
-            <Field label="Passport number">
-              <input name="passport_no" className={`${inputClass} uppercase`} />
             </Field>
             <Field label="Client's own reference" hint="Optional. Printed on the document.">
               <input name="client_ref" className={inputClass} />
@@ -114,12 +111,6 @@ export function SaleForm(props: Props) {
                 </option>
               ))}
             </select>
-          </Field>
-          <Field label="Travel date" hint="Optional.">
-            <input name="travel_from" type="date" className={inputClass} />
-          </Field>
-          <Field label="Return date" hint="Optional.">
-            <input name="travel_to" type="date" className={inputClass} />
           </Field>
           {consultants && (
             <Field label="Consultant">

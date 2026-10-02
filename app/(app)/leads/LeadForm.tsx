@@ -39,7 +39,7 @@ export function LeadForm({ countries, consultants, me, existingClient }: Props) 
           </>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Full name (as on passport)">
+            <Field label="Full name">
               <input name="full_name" required className={inputClass} />
             </Field>
             <Field label="Nationality">
@@ -50,9 +50,6 @@ export function LeadForm({ countries, consultants, me, existingClient }: Props) 
             </Field>
             <Field label="Email">
               <input name="email" type="email" className={inputClass} />
-            </Field>
-            <Field label="Passport number" hint="Optional at enquiry stage.">
-              <input name="passport_no" className={`${inputClass} uppercase`} />
             </Field>
           </div>
         )}
@@ -80,12 +77,6 @@ export function LeadForm({ countries, consultants, me, existingClient }: Props) 
                 </option>
               ))}
             </select>
-          </Field>
-          <Field label="Travel date">
-            <input name="travel_from" type="date" className={inputClass} />
-          </Field>
-          <Field label="Return date">
-            <input name="travel_to" type="date" className={inputClass} />
           </Field>
         </div>
       </Card>

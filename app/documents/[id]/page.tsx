@@ -1,17 +1,17 @@
-import { notFound } from "next/navigation";
-import { loadApplication, requireStaff } from "@/lib/context";
-import { getIssuers } from "@/lib/issuers";
-import { createAdminClient } from "@/lib/supabase/admin";
-import type { Client } from "@/lib/types";
-import { DocumentView, type DocumentIssuer } from "@/components/DocumentView";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Download, ExternalLink } from "lucide-react";
+import { requireStaff } from "@/lib/context";
+import { loadDocument, parseKind } from "@/lib/documents";
 import { Breadcrumbs } from "@/components/PageHeader";
-import { PrintButton } from "./PrintButton";
+import { buttonClass, secondaryButtonClass } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-type DocumentBank = Pick<DocumentIssuer, "website" | "bank_name" | "bank_account_name" | "bank_iban" | "bank_swift">;
-
+/**
+ * The issued quotation or invoice. What's shown is the generated PDF itself,
+ * so what staff see is exactly what they download, print and send.
+ */
 export default async function DocumentPage({
   params,
   searchParams,
@@ -20,32 +20,15 @@ export default async function DocumentPage({
   searchParams: { type?: string; new?: string };
 }) {
   const staff = await requireStaff();
-  const app = await loadApplication(params.id, staff);
-  const kind = searchParams.type === "invoice" ? "invoice" : "quotation";
+  const kind = parseKind(searchParams.type);
+  const doc = await loadDocument(params.id, kind, staff);
+  if (!doc) notFound();
 
-  const number = kind === "invoice" ? app.invoice_number : app.quotation_number;
-  if (!number || !app.issued_by) notFound();
-
-  const issuer = (await getIssuers()).find((i) => i.id === app.issued_by);
-  if (!issuer) notFound();
-
-  const admin = createAdminClient();
-  const [{ data: client }, { data: extra }, { data: payments }, { data: country }] = await Promise.all([
-    admin.from("clients").select("*").eq("id", app.client_id).single<Client>(),
-    admin
-      .from("issuers")
-      .select("bank_name, bank_account_name, bank_iban, bank_swift, website")
-      .eq("id", issuer.id)
-      .single<DocumentBank>(),
-    admin.from("payments").select("amount").eq("application_id", app.id),
-    admin.from("countries").select("name").eq("code", app.country_code).maybeSingle(),
-  ]);
-
-  if (!client) notFound();
+  const pdf = `/documents/${params.id}/pdf?type=${kind}`;
 
   return (
-    <div className="min-h-screen bg-[#F6F7F9] py-6 print:bg-white print:py-0">
-      <div className="mx-auto mb-4 max-w-[210mm] space-y-3 px-4 print:hidden">
+    <div className="flex min-h-screen flex-col bg-[#F6F7F9]">
+      <div className="border-b border-navy/10 bg-white px-4 py-3 md:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumbs
             trail={[
@@ -53,16 +36,25 @@ export default async function DocumentPage({
               kind === "invoice"
                 ? { label: "Invoices", href: "/invoices" }
                 : { label: "Quotations", href: "/quotations" },
-              { label: app.ref, href: `/applications/${app.id}` },
+              { label: doc.app.ref, href: `/applications/${params.id}` },
             ]}
-            current={number}
+            current={doc.number}
           />
-          <PrintButton />
+          <div className="flex flex-wrap gap-2">
+            <a href={pdf} target="_blank" rel="noopener" className={secondaryButtonClass}>
+              <ExternalLink className="h-4 w-4" />
+              Open / print
+            </a>
+            <a href={`${pdf}&download=1`} className={buttonClass}>
+              <Download className="h-4 w-4" />
+              Download PDF
+            </a>
+          </div>
         </div>
         {searchParams.new && (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {kind === "invoice" ? "Invoice" : "Quotation"} <strong>{number}</strong> issued.{" "}
-            <Link href={`/applications/${app.id}`} className="font-bold underline">
+          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+            {kind === "invoice" ? "Invoice" : "Quotation"} <strong>{doc.number}</strong> issued.{" "}
+            <Link href={`/applications/${params.id}`} className="font-bold underline">
               Open the sale
             </Link>{" "}
             to record payments or update its status.
@@ -70,13 +62,11 @@ export default async function DocumentPage({
         )}
       </div>
 
-      <DocumentView
-        kind={kind}
-        issuer={{ ...issuer, ...(extra as DocumentBank) }}
-        app={app}
-        client={client}
-        countryName={country?.name ?? app.country_code}
-        payments={payments ?? []}
+      <iframe
+        src={`${pdf}#view=FitH`}
+        title={`${kind === "invoice" ? "Invoice" : "Quotation"} ${doc.number}`}
+        className="w-full flex-1 border-0"
+        style={{ minHeight: "80vh" }}
       />
     </div>
   );

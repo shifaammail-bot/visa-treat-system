@@ -219,7 +219,6 @@ export default async function ApplicationPage({ params }: { params: { id: string
                 <Row label="Nationality">{client.nationality}</Row>
                 <Row label="Phone">{client.phone ?? "—"}</Row>
                 <Row label="Email">{client.email ?? "—"}</Row>
-                <Row label="Passport">{client.passport_no ?? "—"}</Row>
               </dl>
             ) : (
               <Notice tone="error">Client record missing.</Notice>
@@ -230,10 +229,6 @@ export default async function ApplicationPage({ params }: { params: { id: string
             <dl className="divide-y divide-navy/5">
               <Row label="Destination">{country?.name ?? app.country_code}</Row>
               <Row label="Visa type">{app.visa_type ? VISA_TYPE_LABEL[app.visa_type] : "—"}</Row>
-              <Row label="Travel">
-                {app.travel_from ? formatDate(app.travel_from) : "—"}
-                {app.travel_to ? ` → ${formatDate(app.travel_to)}` : ""}
-              </Row>
               <Row label="Source">{app.source ? SOURCE_LABEL[app.source] : "—"}</Row>
               <Row label="Consultant">{nameOf(staffList, app.consultant)}</Row>
               <Row label="Created">{formatDate(app.created_at)}</Row>

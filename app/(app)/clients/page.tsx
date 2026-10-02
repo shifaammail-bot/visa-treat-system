@@ -32,7 +32,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: { q?
     .limit(500);
 
   const q = searchParams.q?.trim().replace(/[,()%]/g, " ");
-  if (q) query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%,passport_no.ilike.%${q}%`);
+  if (q) query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
   if (ids) {
     query =
       staff.role === "consultant"
@@ -57,7 +57,6 @@ export default async function ClientsPage({ searchParams }: { searchParams: { q?
                 <th className={thClass}>Name</th>
                 <th className={thClass}>Nationality</th>
                 <th className={thClass}>Contact</th>
-                <th className={thClass}>Passport</th>
                 <th className={`${thClass} text-right`}>Applications</th>
                 <th className={thClass}>Added</th>
               </tr>
@@ -73,7 +72,6 @@ export default async function ClientsPage({ searchParams }: { searchParams: { q?
                     <p>{c.phone ?? "—"}</p>
                     <p className="text-xs text-navy/50">{c.email ?? ""}</p>
                   </td>
-                  <td className={`${tdClass} font-mono text-xs`}>{c.passport_no ?? "—"}</td>
                   <td className={`${tdClass} text-right tabular-nums`}>{c.applications?.[0]?.count ?? 0}</td>
                   <td className={tdClass}>{formatDate(c.created_at)}</td>
                 </tr>
