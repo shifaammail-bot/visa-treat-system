@@ -1,5 +1,10 @@
 import { PLACEHOLDER_TERMS, getProducts } from "@/lib/catalogue";
-import { getContext, getStaffList, loadApplication, nameOf } from "@/lib/context";
+import {
+  getContext,
+  getStaffList,
+  loadApplication,
+  nameOf,
+} from "@/lib/context";
 import {
   METHOD_LABEL,
   SOURCE_LABEL,
@@ -21,7 +26,13 @@ import { Card, Notice, StatusBadge, TableLink } from "@/components/ui";
 import { DocumentButtons, PaymentForm, StatusButtons } from "./Controls";
 import { QuoteForm } from "./QuoteForm";
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex justify-between gap-4 py-1.5 text-sm">
       <dt className="text-navy/60">{label}</dt>
@@ -30,26 +41,52 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default async function ApplicationPage({ params }: { params: { id: string } }) {
+export default async function ApplicationPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const { staff, issuers: allowed } = await getContext();
   const app = await loadApplication(params.id, staff);
   const admin = createAdminClient();
 
-  const [{ data: client }, { data: paymentRows }, { data: country }, products, staffList, allIssuers] =
-    await Promise.all([
-      admin.from("clients").select("*").eq("id", app.client_id).single<Client>(),
-      admin.from("payments").select("*").eq("application_id", app.id).order("paid_at"),
-      admin.from("countries").select("name").eq("code", app.country_code).maybeSingle(),
-      getProducts(),
-      getStaffList(),
-      getIssuers(),
-    ]);
+  const [
+    { data: client },
+    { data: paymentRows },
+    { data: country },
+    products,
+    staffList,
+    allIssuers,
+  ] = await Promise.all([
+    admin.from("clients").select("*").eq("id", app.client_id).single<Client>(),
+    admin
+      .from("payments")
+      .select("*")
+      .eq("application_id", app.id)
+      .order("paid_at"),
+    admin
+      .from("countries")
+      .select("name")
+      .eq("code", app.country_code)
+      .maybeSingle(),
+    getProducts(),
+    getStaffList(),
+    getIssuers(),
+  ]);
 
   const payments = (paymentRows ?? []) as Payment[];
   const issuer = allIssuers.find((i) => i.id === app.issued_by) ?? null;
   const showCosts = can.seeCosts(staff.role);
-  const editable = can.editSale(staff.role) && !app.invoice_number && app.status !== "cancelled";
-  const owed = balance(num(app.grand_total), payments.map((p) => ({ amount: num(p.amount) })));
+  const adminEditingInvoice =
+    !!app.invoice_number && can.editIssuedInvoice(staff.role);
+  const editable =
+    can.editSale(staff.role) &&
+    app.status !== "cancelled" &&
+    (!app.invoice_number || adminEditingInvoice);
+  const owed = balance(
+    num(app.grand_total),
+    payments.map((p) => ({ amount: num(p.amount) })),
+  );
   const paid = num(app.grand_total) - owed;
   const ready = !!app.issued_by && num(app.grand_total) > 0;
   const taxInvoice = !!issuer && issuer.vat_registered && issuer.trn !== null;
@@ -72,7 +109,11 @@ export default async function ApplicationPage({ params }: { params: { id: string
         crumbs={[parent]}
       >
         {issuer && (
-          <BrandLogo slug={issuer.slug} tradeName={issuer.trade_name} accentColour={issuer.accent_colour} />
+          <BrandLogo
+            slug={issuer.slug}
+            tradeName={issuer.trade_name}
+            accentColour={issuer.accent_colour}
+          />
         )}
       </PageHeader>
 
@@ -82,18 +123,53 @@ export default async function ApplicationPage({ params }: { params: { id: string
           quoted={ready}
           invoiced={!!app.invoice_number}
           paid={!!app.invoice_number && owed <= 0}
-          submitted={!!app.submitted_at || ["submitted", "approved", "rejected"].includes(app.status)}
-          decision={app.status === "approved" || app.status === "rejected" ? app.status : null}
+          submitted={
+            !!app.submitted_at ||
+            ["submitted", "approved", "rejected"].includes(app.status)
+          }
+          decision={
+            app.status === "approved" || app.status === "rejected"
+              ? app.status
+              : null
+          }
           cancelled={app.status === "cancelled"}
         />
       </div>
 
       <div className="grid gap-6 px-4 py-6 md:px-8 xl:grid-cols-[1fr_360px]">
         <div className="min-w-0 space-y-6">
-          <Card title={app.invoice_number ? "Price (locked — invoiced)" : "Quote"}>
+          <Card
+            title={
+              app.invoice_number
+                ? adminEditingInvoice
+                  ? `Invoice ${app.invoice_number} — admin edit`
+                  : "Price (locked — invoiced)"
+                : "Quote"
+            }
+          >
+            {adminEditingInvoice && editable && (
+              <div className="mb-5">
+                <Notice tone="warn">
+                  You&apos;re editing an issued invoice. The number, date and
+                  company stay the same; the figures, description and terms
+                  change on the PDF. Each edit records your name and the time.
+                  {app.edited_at && (
+                    <>
+                      {" "}
+                      Last edited by{" "}
+                      <strong>
+                        {nameOf(staffList, app.edited_by ?? null)}
+                      </strong>{" "}
+                      on {formatDate(app.edited_at)}.
+                    </>
+                  )}
+                </Notice>
+              </div>
+            )}
             {editable ? (
               <QuoteForm
                 applicationId={app.id}
+                invoiceNumber={app.invoice_number}
                 countryCode={app.country_code}
                 issuers={allowed.map((i) => ({
                   id: i.id,
@@ -111,19 +187,32 @@ export default async function ApplicationPage({ params }: { params: { id: string
                   service_charge: num(app.service_charge),
                   selling_price: num(app.selling_price),
                   cost_price: showCosts ? num(app.cost_price) : null,
-                  terms: app.terms ?? products.find((p) => p.id === app.product_id)?.terms ?? PLACEHOLDER_TERMS,
+                  terms:
+                    app.terms ??
+                    products.find((p) => p.id === app.product_id)?.terms ??
+                    PLACEHOLDER_TERMS,
                 }}
               />
             ) : (
               <dl className="divide-y divide-navy/5">
-                <Row label="Company">{issuer ? `${issuer.trade_name} — ${issuer.legal_name}` : "Not chosen"}</Row>
+                <Row label="Company">
+                  {issuer
+                    ? `${issuer.trade_name} — ${issuer.legal_name}`
+                    : "Not chosen"}
+                </Row>
                 <Row label="Visa">{app.product_name}</Row>
                 <Row label="Guests">{app.quantity}</Row>
-                <Row label="Selling price per guest">{money(app.selling_price)}</Row>
-                <Row label="Service fee per guest">{money(app.service_charge)}</Row>
+                <Row label="Selling price per guest">
+                  {money(app.selling_price)}
+                </Row>
+                <Row label="Service fee per guest">
+                  {money(app.service_charge)}
+                </Row>
                 {taxInvoice && (
                   <>
-                    <Row label="Taxable amount">{money(app.taxable_amount)}</Row>
+                    <Row label="Taxable amount">
+                      {money(app.taxable_amount)}
+                    </Row>
                     <Row label="VAT 5%">{money(app.vat_amount)}</Row>
                   </>
                 )}
@@ -131,7 +220,14 @@ export default async function ApplicationPage({ params }: { params: { id: string
                   <>
                     <Row label="Cost per guest">{money(app.cost_price)}</Row>
                     <Row label="Profit">
-                      {money(margin(num(app.selling_price), num(app.cost_price), num(app.government_fee), app.quantity))}
+                      {money(
+                        margin(
+                          num(app.selling_price),
+                          num(app.cost_price),
+                          num(app.government_fee),
+                          app.quantity,
+                        ),
+                      )}
                     </Row>
                   </>
                 )}
@@ -140,11 +236,21 @@ export default async function ApplicationPage({ params }: { params: { id: string
             )}
           </Card>
 
-          <Card title="Payments" action={<span className="text-sm font-bold">{owed > 0 ? `${money(owed)} owed` : ready ? "Paid in full" : ""}</span>}>
+          <Card
+            title="Payments"
+            action={
+              <span className="text-sm font-bold">
+                {owed > 0 ? `${money(owed)} owed` : ready ? "Paid in full" : ""}
+              </span>
+            }
+          >
             {payments.length > 0 && (
               <ul className="mb-5 divide-y divide-navy/10 rounded-lg border border-navy/10">
                 {payments.map((p) => (
-                  <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                  <li
+                    key={p.id}
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                  >
                     <div>
                       <p className="font-semibold">
                         {money(p.amount)} · {METHOD_LABEL[p.method]}
@@ -153,9 +259,13 @@ export default async function ApplicationPage({ params }: { params: { id: string
                         {formatDate(p.paid_at)}
                         {p.receipt_number ? ` · ${p.receipt_number}` : ""}
                         {p.reference ? ` · Ref ${p.reference}` : ""}
-                        {p.received_by ? ` · ${nameOf(staffList, p.received_by)}` : ""}
+                        {p.received_by
+                          ? ` · ${nameOf(staffList, p.received_by)}`
+                          : ""}
                       </p>
-                      {p.note && <p className="text-xs text-navy/60">{p.note}</p>}
+                      {p.note && (
+                        <p className="text-xs text-navy/60">{p.note}</p>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -164,25 +274,40 @@ export default async function ApplicationPage({ params }: { params: { id: string
             <dl className="mb-5 grid grid-cols-3 gap-3 text-center">
               <div className="rounded-lg bg-navy/[0.03] p-3">
                 <dt className="text-xs text-navy/50">Total</dt>
-                <dd className="font-bold tabular-nums">{money(app.grand_total)}</dd>
+                <dd className="font-bold tabular-nums">
+                  {money(app.grand_total)}
+                </dd>
               </div>
               <div className="rounded-lg bg-navy/[0.03] p-3">
                 <dt className="text-xs text-navy/50">Paid</dt>
                 <dd className="font-bold tabular-nums">{money(paid)}</dd>
               </div>
-              <div className={`rounded-lg p-3 ${owed > 0 ? "bg-red-50" : "bg-emerald-50"}`}>
+              <div
+                className={`rounded-lg p-3 ${owed > 0 ? "bg-red-50" : "bg-emerald-50"}`}
+              >
                 <dt className="text-xs text-navy/50">Balance</dt>
-                <dd className={`font-bold tabular-nums ${owed > 0 ? "text-red-700" : "text-emerald-700"}`}>
+                <dd
+                  className={`font-bold tabular-nums ${owed > 0 ? "text-red-700" : "text-emerald-700"}`}
+                >
                   {money(owed)}
                 </dd>
               </div>
             </dl>
             {app.status === "cancelled" ? (
-              <p className="text-sm text-navy/50">Cancelled — no further payments.</p>
+              <p className="text-sm text-navy/50">
+                Cancelled — no further payments.
+              </p>
             ) : !ready ? (
-              <p className="text-sm text-navy/50">Save a quote with a company and a price before taking payment.</p>
+              <p className="text-sm text-navy/50">
+                Save a quote with a company and a price before taking payment.
+              </p>
             ) : owed > 0 && can.recordPayment(staff.role) ? (
-              <PaymentForm key={owed} id={app.id} owed={owed} today={dubaiDate()} />
+              <PaymentForm
+                key={owed}
+                id={app.id}
+                owed={owed}
+                today={dubaiDate()}
+              />
             ) : null}
           </Card>
         </div>
@@ -198,7 +323,8 @@ export default async function ApplicationPage({ params }: { params: { id: string
             />
             {issuer && !taxInvoice && (
               <p className="mt-3 text-xs text-navy/60">
-                {issuer.trade_name} has no TRN, so its documents are plain invoices with no VAT line.
+                {issuer.trade_name} has no TRN, so its documents are plain
+                invoices with no VAT line.
               </p>
             )}
           </Card>
@@ -211,7 +337,11 @@ export default async function ApplicationPage({ params }: { params: { id: string
 
           <Card
             title="Client"
-            action={client && <TableLink href={`/clients/${client.id}`}>Open</TableLink>}
+            action={
+              client && (
+                <TableLink href={`/clients/${client.id}`}>Open</TableLink>
+              )
+            }
           >
             {client ? (
               <dl className="divide-y divide-navy/5">
@@ -228,14 +358,26 @@ export default async function ApplicationPage({ params }: { params: { id: string
           <Card title={app.source === "direct" ? "Sale" : "Lead"}>
             <dl className="divide-y divide-navy/5">
               <Row label="Destination">{country?.name ?? app.country_code}</Row>
-              <Row label="Visa type">{app.visa_type ? VISA_TYPE_LABEL[app.visa_type] : "—"}</Row>
-              <Row label="Source">{app.source ? SOURCE_LABEL[app.source] : "—"}</Row>
+              <Row label="Visa type">
+                {app.visa_type ? VISA_TYPE_LABEL[app.visa_type] : "—"}
+              </Row>
+              <Row label="Source">
+                {app.source ? SOURCE_LABEL[app.source] : "—"}
+              </Row>
               <Row label="Consultant">{nameOf(staffList, app.consultant)}</Row>
               <Row label="Created">{formatDate(app.created_at)}</Row>
-              {app.submitted_at && <Row label="Submitted">{formatDate(app.submitted_at)}</Row>}
-              {app.decided_at && <Row label="Decided">{formatDate(app.decided_at)}</Row>}
+              {app.submitted_at && (
+                <Row label="Submitted">{formatDate(app.submitted_at)}</Row>
+              )}
+              {app.decided_at && (
+                <Row label="Decided">{formatDate(app.decided_at)}</Row>
+              )}
             </dl>
-            {app.notes && <p className="mt-3 whitespace-pre-line text-sm text-navy/70">{app.notes}</p>}
+            {app.notes && (
+              <p className="mt-3 whitespace-pre-line text-sm text-navy/70">
+                {app.notes}
+              </p>
+            )}
           </Card>
         </div>
       </div>

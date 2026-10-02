@@ -34,6 +34,8 @@ type Props = {
   initial: QuoteInitial;
   /** Told when a catalogue product is picked, so a parent can follow its destination. */
   onProductCountry?: (code: string) => void;
+  /** An issued invoice keeps its company: show it, but don't allow a change. */
+  lockIssuer?: boolean;
 };
 
 const str = (n: number) => (n ? String(n) : "");
@@ -43,8 +45,18 @@ const str = (n: number) => (n ? String(n) : "");
  * live VAT preview from lib/vat.ts. No <form> of its own: used inside the quote form and the
  * direct-sale form.
  */
-export function QuoteFields({ countryCode, issuers, products, showCosts, initial, onProductCountry }: Props) {
-  const [issuerId, setIssuerId] = useState(initial.issued_by ?? (issuers.length === 1 ? issuers[0].id : ""));
+export function QuoteFields({
+  countryCode,
+  issuers,
+  products,
+  showCosts,
+  initial,
+  onProductCountry,
+  lockIssuer,
+}: Props) {
+  const [issuerId, setIssuerId] = useState(
+    initial.issued_by ?? (issuers.length === 1 ? issuers[0].id : ""),
+  );
   const [productId, setProductId] = useState(initial.product_id ?? "");
   const [productName, setProductName] = useState(initial.product_name);
   const [quantity, setQuantity] = useState(String(initial.quantity || 1));
@@ -67,26 +79,43 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
     setService(str(p.default_service_charge));
     setSelling(str(p.default_selling_price));
     if (p.terms) setTerms(p.terms);
-    if (!issuerId && p.default_issuer_id && issuers.some((i) => i.id === p.default_issuer_id)) {
+    if (
+      !issuerId &&
+      p.default_issuer_id &&
+      issuers.some((i) => i.id === p.default_issuer_id)
+    ) {
       setIssuerId(p.default_issuer_id);
     }
   };
 
   const split = useMemo(
-    () => vatSplit(Number(selling) || 0, Number(service) || 0, Number(quantity) || 1, issuer?.taxInvoice ?? false),
-    [selling, service, quantity, issuer]
+    () =>
+      vatSplit(
+        Number(selling) || 0,
+        Number(service) || 0,
+        Number(quantity) || 1,
+        issuer?.taxInvoice ?? false,
+      ),
+    [selling, service, quantity, issuer],
   );
   const guests = Math.max(1, Math.floor(Number(quantity) || 1));
-  const tooLow = Number(selling) > 0 && Number(selling) + 0.001 < (Number(service) || 0);
+  const tooLow =
+    Number(selling) > 0 && Number(selling) + 0.001 < (Number(service) || 0);
 
   return (
     <div className="space-y-5">
-
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Issuing company">
+        <Field
+          label="Issuing company"
+          hint={lockIssuer ? "Fixed once the invoice is issued." : undefined}
+        >
+          {lockIssuer && (
+            <input type="hidden" name="issued_by" value={issuerId} />
+          )}
           <select
-            name="issued_by"
+            name={lockIssuer ? undefined : "issued_by"}
             required
+            disabled={lockIssuer}
             value={issuerId}
             onChange={(e) => setIssuerId(e.target.value)}
             className={inputClass}
@@ -106,7 +135,9 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
           <select
             name="product_id"
             value={productId}
-            onChange={(e) => (e.target.value ? pickProduct(e.target.value) : setProductId(""))}
+            onChange={(e) =>
+              e.target.value ? pickProduct(e.target.value) : setProductId("")
+            }
             className={inputClass}
           >
             <option value="">Manual entry</option>
@@ -138,13 +169,16 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
         <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            <strong>Placeholder rate.</strong> These prices are not the real price list yet. Check them before
-            sending this quote.
+            <strong>Placeholder rate.</strong> These prices are not the real
+            price list yet. Check them before sending this quote.
           </p>
         </div>
       )}
 
-      <Field label="Visa description" hint="Printed on the quotation and invoice.">
+      <Field
+        label="Visa description"
+        hint="Printed on the quotation and invoice."
+      >
         <input
           name="product_name"
           value={productName}
@@ -181,7 +215,10 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
             className={inputClass}
           />
         </Field>
-        <Field label="Service fee" hint="Per guest, inside the selling price. VAT is taken from this.">
+        <Field
+          label="Service fee"
+          hint="Per guest, inside the selling price. VAT is taken from this."
+        >
           <input
             name="service_charge"
             type="number"
@@ -193,7 +230,10 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
           />
         </Field>
         {showCosts && (
-          <Field label="Cost" hint="Per guest. What we pay out. Admin and managers only.">
+          <Field
+            label="Cost"
+            hint="Per guest. What we pay out. Admin and managers only."
+          >
             <input
               name="cost_price"
               type="number"
@@ -209,19 +249,24 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
 
       {tooLow && (
         <Notice tone="warn">
-          The service fee is more than the selling price. The service fee is part of the price, so it can&apos;t
-          be bigger than it.
+          The service fee is more than the selling price. The service fee is
+          part of the price, so it can&apos;t be bigger than it.
         </Notice>
       )}
 
       <div className="rounded-xl bg-navy/[0.03] p-4">
         <p className="text-xs font-bold uppercase tracking-wide text-navy/50">
-          {issuer ? (issuer.taxInvoice ? "Tax invoice preview" : "Invoice preview — no VAT") : "Preview"}
+          {issuer
+            ? issuer.taxInvoice
+              ? "Tax invoice preview"
+              : "Invoice preview — no VAT"
+            : "Preview"}
         </p>
         <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
           <div className="flex justify-between">
             <dt className="text-navy/60">
-              {guests} guest{guests === 1 ? "" : "s"} × {money(Number(selling) || 0)}
+              {guests} guest{guests === 1 ? "" : "s"} ×{" "}
+              {money(Number(selling) || 0)}
             </dt>
             <dd className="tabular-nums">{money(split.grandTotal)}</dd>
           </div>
@@ -233,13 +278,19 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
           ) : (
             <div className="flex justify-between">
               <dt className="text-navy/60">VAT</dt>
-              <dd className="text-navy/60">{issuer ? "None — company has no TRN" : "Choose a company"}</dd>
+              <dd className="text-navy/60">
+                {issuer ? "None — company has no TRN" : "Choose a company"}
+              </dd>
             </div>
           )}
           {showCosts && (
             <div className="flex justify-between">
               <dt className="text-navy/60">Profit</dt>
-              <dd className="tabular-nums">{money(margin(Number(selling) || 0, Number(cost) || 0, 0, guests))}</dd>
+              <dd className="tabular-nums">
+                {money(
+                  margin(Number(selling) || 0, Number(cost) || 0, 0, guests),
+                )}
+              </dd>
             </div>
           )}
           <div className="flex justify-between border-t border-navy/10 pt-1.5 font-bold sm:col-span-2">
@@ -249,7 +300,10 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
         </dl>
       </div>
 
-      <Field label="Terms and conditions" hint="Printed on the quotation and invoice.">
+      <Field
+        label="Terms and conditions"
+        hint="Printed on the quotation and invoice."
+      >
         <textarea
           name="terms"
           rows={5}
