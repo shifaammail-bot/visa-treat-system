@@ -17,9 +17,8 @@ import {
   X,
 } from "lucide-react";
 import type { NavItem } from "@/lib/nav";
-import type { Issuer } from "@/lib/issuers";
 import { signOut } from "@/app/actions";
-import { BrandSwitcher } from "@/components/BrandSwitcher";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const ICONS: Record<NavItem["icon"], React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
@@ -41,12 +40,10 @@ const ROLE_LABEL = {
 
 type Props = {
   items: NavItem[];
-  issuers: Issuer[];
-  selected: string;
   staff: { full_name: string; email: string; role: keyof typeof ROLE_LABEL };
 };
 
-export function Sidebar({ items, issuers, selected, staff }: Props) {
+export function Sidebar({ items, staff }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -73,8 +70,10 @@ export function Sidebar({ items, issuers, selected, staff }: Props) {
           open ? "flex" : "hidden"
         } w-full flex-col bg-navy text-white md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0`}
       >
-        <div className="border-b border-navy-700 p-4">
-          <BrandSwitcher issuers={issuers} selected={selected} />
+        {/* All sales are Visa Treat's; the issuing company is chosen per quote. */}
+        <div className="hidden border-b border-navy-700 px-5 py-5 md:block">
+          <BrandLogo slug="visatreat" tradeName="Visa Treat" accentColour="#2FE0C2" on="dark" className="h-8" />
+          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">Desk</p>
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">

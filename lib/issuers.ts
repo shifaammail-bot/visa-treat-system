@@ -1,10 +1,6 @@
 import { cache } from "react";
-import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Staff } from "@/lib/auth";
-import { ALL_BRANDS, BRAND_COOKIE } from "@/lib/brand";
-
-export { ALL_BRANDS, BRAND_COOKIE };
 
 export type Issuer = {
   id: string;
@@ -39,15 +35,4 @@ export const getIssuers = cache(async (): Promise<Issuer[]> => {
 export function allowedIssuers(issuers: Issuer[], staff: Staff): Issuer[] {
   if (staff.role !== "manager" || !staff.issuer_ids) return issuers;
   return issuers.filter((i) => staff.issuer_ids!.includes(i.id));
-}
-
-/**
- * The brand picked in the sidebar switcher: an issuer id, or "all".
- * Falls back to "all" (or the only allowed brand) if the cookie is stale.
- */
-export function selectedBrand(allowed: Issuer[]): string {
-  const value = cookies().get(BRAND_COOKIE)?.value;
-  if (value && allowed.some((i) => i.id === value)) return value;
-  if (allowed.length === 1) return allowed[0].id;
-  return ALL_BRANDS;
 }

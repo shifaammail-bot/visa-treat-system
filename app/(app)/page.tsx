@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getContext, getStaffList } from "@/lib/context";
-import { ALL_BRANDS } from "@/lib/issuers";
 import { can } from "@/lib/permissions";
 import { buildReport, thisMonth } from "@/lib/reports";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,15 +10,9 @@ import { buttonClass } from "@/components/ui";
 export default async function DashboardPage() {
   const ctx = await getContext();
   const [report, staffList] = await Promise.all([buildReport(ctx, thisMonth()), getStaffList()]);
-  const brand = ctx.issuers.find((i) => i.id === ctx.brand);
   const firstName = ctx.staff.full_name.split(" ")[0];
 
-  const scope =
-    ctx.staff.role === "consultant"
-      ? "Your leads and sales"
-      : ctx.brand === ALL_BRANDS
-        ? "All brands"
-        : brand?.trade_name;
+  const scope = ctx.staff.role === "consultant" ? "Your leads and sales" : "All sales";
 
   return (
     <>

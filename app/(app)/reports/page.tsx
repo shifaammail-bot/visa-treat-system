@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getContext, getStaffList, nameOf } from "@/lib/context";
 import { SOURCE_LABEL, VISA_TYPE_LABEL, dubaiDate, formatDate } from "@/lib/format";
-import { ALL_BRANDS } from "@/lib/issuers";
 import { can } from "@/lib/permissions";
 import {
   MONTHLY_PROFIT_TARGET,
@@ -79,16 +78,13 @@ export default async function ReportsPage({
   const month = isMonth(searchParams.month) && searchParams.month <= currentMonth() ? searchParams.month : currentMonth();
 
   const [rows, staffList] = await Promise.all([loadSales(ctx), getStaffList()]);
-  const brand = ctx.issuers.find((i) => i.id === ctx.brand);
   const issuerName = (id: string | null) => ctx.issuers.find((i) => i.id === id)?.trade_name ?? "—";
 
   return (
     <>
       <PageHeader
         title="Reports"
-        description={`${ctx.brand === ALL_BRANDS ? "All brands" : brand?.trade_name} · profit target ${money(
-          MONTHLY_PROFIT_TARGET
-        )} a month`}
+        description={`All sales · profit target ${money(MONTHLY_PROFIT_TARGET)} a month`}
       >
         {view !== "overview" && <MonthPicker view={view} month={month} />}
       </PageHeader>

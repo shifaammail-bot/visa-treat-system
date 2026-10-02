@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession, type Staff } from "@/lib/auth";
-import { ALL_BRANDS, allowedIssuers, getIssuers, selectedBrand, type Issuer } from "@/lib/issuers";
+import { allowedIssuers, getIssuers, type Issuer } from "@/lib/issuers";
 import { brandLimit, canSeeApplication } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Application } from "@/lib/types";
@@ -9,8 +9,6 @@ export type Context = {
   staff: Staff;
   /** Issuers this person may see. */
   issuers: Issuer[];
-  /** The sidebar brand: an issuer id or "all". */
-  brand: string;
 };
 
 /** The signed-in staff member, or a redirect. Use at the top of every page and action. */
@@ -24,22 +22,16 @@ export async function requireStaff(): Promise<Staff> {
 export async function getContext(): Promise<Context> {
   const staff = await requireStaff();
   const issuers = allowedIssuers(await getIssuers(), staff);
-  return { staff, issuers, brand: selectedBrand(issuers) };
+  return { staff, issuers };
 }
 
 /**
- * Narrows an applications query to what this person may see and the brand
- * picked in the sidebar.
- *
- * `includeUnassigned` keeps leads with no company yet when a brand is picked —
- * they belong to no brand until quoted.
+ * Narrows an applications query to what this person may see: consultants
+ * their own, brand-limited managers their brands plus leads with no company
+ * chosen yet.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function scopeApplications<Q extends { eq: any; or: any; in: any }>(
-  query: Q,
-  { staff, brand }: Context,
-  { includeUnassigned = false } = {}
-): Q {
+export function scopeApplications<Q extends { eq: any; or: any }>(query: Q, { staff }: Context): Q {
   let q = query;
   if (staff.role === "consultant") q = q.eq("consultant", staff.email);
 
@@ -47,10 +39,6 @@ export function scopeApplications<Q extends { eq: any; or: any; in: any }>(
   if (limit) {
     const ids = limit.length ? limit.join(",") : "00000000-0000-0000-0000-000000000000";
     q = q.or(`issued_by.in.(${ids}),issued_by.is.null`);
-  }
-
-  if (brand !== ALL_BRANDS) {
-    q = includeUnassigned ? q.or(`issued_by.eq.${brand},issued_by.is.null`) : q.eq("issued_by", brand);
   }
   return q;
 }

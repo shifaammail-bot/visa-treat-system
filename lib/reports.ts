@@ -54,7 +54,7 @@ export type Report = Awaited<ReturnType<typeof buildReport>>;
 
 /**
  * Everything the dashboard and reports show, for one period, scoped to the
- * viewer and the sidebar brand.
+ * viewer.
  *
  * - Leads: applications created in the period (Dubai date).
  * - Conversion: of those leads, the share that reached an invoice.
@@ -64,7 +64,7 @@ export type Report = Awaited<ReturnType<typeof buildReport>>;
 export async function buildReport(ctx: Context, period: Period) {
   const admin = createAdminClient();
   const rows = await fetchAll<ReportApp>((from, to) =>
-    scopeApplications(admin.from("visa_applications").select(SELECT), ctx, { includeUnassigned: true })
+    scopeApplications(admin.from("visa_applications").select(SELECT), ctx)
       .order("created_at", { ascending: false })
       .range(from, to) as unknown as PromiseLike<{ data: ReportApp[] | null; error: { message: string } | null }>
   );
@@ -105,12 +105,12 @@ export async function buildReport(ctx: Context, period: Period) {
 const SALE_SELECT =
   "id, ref, created_at, consultant, issued_by, product_name, visa_type, source, quantity, government_fee, selling_price, cost_price, status, invoice_number, invoice_date, client:clients(full_name)";
 
-/** Every application the viewer may see, for the sidebar brand. */
+/** Every application the viewer may see. */
 export async function loadSales(ctx: Context): Promise<SaleRow[]> {
   const admin = createAdminClient();
   return fetchAll<SaleRow>(
     (from, to) =>
-      scopeApplications(admin.from("visa_applications").select(SALE_SELECT), ctx, { includeUnassigned: true })
+      scopeApplications(admin.from("visa_applications").select(SALE_SELECT), ctx)
         .order("created_at", { ascending: false })
         .range(from, to) as unknown as PromiseLike<{
         data: SaleRow[] | null;

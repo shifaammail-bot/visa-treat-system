@@ -8,15 +8,14 @@ type ListOptions = {
   status?: Status[];
   /** Only applications with this document. */
   has?: "quotation" | "invoice";
-  includeUnassigned?: boolean;
   search?: string;
   limit?: number;
 };
 
-/** Applications for a list page, scoped to the viewer and the sidebar brand. Newest first. */
+/** Applications for a list page, scoped to the viewer. Newest first. */
 export async function listApplications(ctx: Context, opts: ListOptions = {}): Promise<ApplicationRow[]> {
   let query = createAdminClient().from("visa_applications").select(APPLICATION_ROW_SELECT);
-  query = scopeApplications(query, ctx, { includeUnassigned: opts.includeUnassigned });
+  query = scopeApplications(query, ctx);
   if (opts.status?.length) query = query.in("status", opts.status);
   if (opts.has === "quotation") query = query.not("quotation_number", "is", null);
   if (opts.has === "invoice") query = query.not("invoice_number", "is", null);

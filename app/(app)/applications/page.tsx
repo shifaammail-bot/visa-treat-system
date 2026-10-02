@@ -17,7 +17,6 @@ export default async function ApplicationsPage({
   const [rows, staffList] = await Promise.all([
     listApplications(ctx, {
       status: status ? [status] : undefined,
-      includeUnassigned: true,
       search: searchParams.q,
     }),
     getStaffList(),

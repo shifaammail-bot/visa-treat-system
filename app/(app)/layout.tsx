@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { allowedIssuers, getIssuers, selectedBrand } from "@/lib/issuers";
 import { navFor } from "@/lib/nav";
 import { signOut } from "@/app/actions";
 import { Sidebar } from "@/components/Sidebar";
@@ -35,14 +34,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   const { staff } = session;
-  const issuers = allowedIssuers(await getIssuers(), staff);
 
   return (
     <div className="min-h-screen md:flex">
       <Sidebar
         items={navFor(staff.role)}
-        issuers={issuers}
-        selected={selectedBrand(issuers)}
         staff={{ full_name: staff.full_name, email: staff.email, role: staff.role }}
       />
       <main className="min-w-0 flex-1 bg-white">{children}</main>

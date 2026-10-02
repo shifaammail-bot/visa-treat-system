@@ -20,8 +20,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: { q?
   if (restricted) {
     const { data: apps } = await scopeApplications(
       admin.from("visa_applications").select("client_id"),
-      { ...ctx, brand: "all" },
-      { includeUnassigned: true }
+      ctx
     );
     ids = Array.from(new Set((apps ?? []).map((a) => a.client_id as string)));
   }

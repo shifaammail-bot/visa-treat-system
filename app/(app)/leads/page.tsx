@@ -14,7 +14,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: { q?: 
   if (!can.createLead(ctx.staff.role)) notFound();
 
   const [rows, staffList] = await Promise.all([
-    listApplications(ctx, { status: ["enquiry"], includeUnassigned: true, search: searchParams.q }),
+    listApplications(ctx, { status: ["enquiry"], search: searchParams.q }),
     getStaffList(),
   ]);
 
