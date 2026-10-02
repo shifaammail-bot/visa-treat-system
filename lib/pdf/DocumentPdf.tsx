@@ -501,8 +501,8 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
               <>
                 <TotalRow label="Paid" value={money(paid)} brand={brand} />
                 <TotalRow
-                  label="Balance due"
-                  value={money(owed)}
+                  label={owed < 0 ? "Refund due to client" : "Balance due"}
+                  value={money(Math.abs(owed))}
                   brand={brand}
                   last
                 />
