@@ -16,7 +16,7 @@ export type DocumentIssuer = Issuer & {
 
 export type DocumentData = {
   kind: DocumentKind;
-  /** The printed number, e.g. VT-INV-0001. */
+  /** The printed number, e.g. 879-888 (Visa Treat invoices) or ARB-INV-0001. */
   number: string;
   /** The printed date (YYYY-MM-DD). */
   date: string;
