@@ -261,7 +261,7 @@ function Overview({ rows }: { rows: SaleRow[] }) {
           <Runway profit={now.profit} target={MONTHLY_PROFIT_TARGET} message={runwayMessage(now.profit, month)} />
         </div>
         <p className="mt-6 text-xs text-navy/50">
-          Profit per sale is selling price − cost price − government fee, for every application invoiced this
+          Profit per sale is (selling price − cost) × guests, for every application invoiced this
           month ({now.sales.length} so far). Cancelled applications don&apos;t count.
         </p>
       </Card>

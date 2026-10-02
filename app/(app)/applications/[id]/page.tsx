@@ -108,7 +108,6 @@ export default async function ApplicationPage({ params }: { params: { id: string
                   product_id: app.product_id,
                   product_name: app.product_name,
                   quantity: app.quantity,
-                  government_fee: num(app.government_fee),
                   service_charge: num(app.service_charge),
                   selling_price: num(app.selling_price),
                   cost_price: showCosts ? num(app.cost_price) : null,
@@ -119,9 +118,9 @@ export default async function ApplicationPage({ params }: { params: { id: string
               <dl className="divide-y divide-navy/5">
                 <Row label="Company">{issuer ? `${issuer.trade_name} — ${issuer.legal_name}` : "Not chosen"}</Row>
                 <Row label="Visa">{app.product_name}</Row>
-                <Row label="People">{app.quantity}</Row>
-                <Row label="Selling price per person">{money(app.selling_price)}</Row>
-                <Row label="Government fee per person">{money(app.government_fee)}</Row>
+                <Row label="Guests">{app.quantity}</Row>
+                <Row label="Selling price per guest">{money(app.selling_price)}</Row>
+                <Row label="Service fee per guest">{money(app.service_charge)}</Row>
                 {taxInvoice && (
                   <>
                     <Row label="Taxable amount">{money(app.taxable_amount)}</Row>
@@ -130,8 +129,8 @@ export default async function ApplicationPage({ params }: { params: { id: string
                 )}
                 {showCosts && (
                   <>
-                    <Row label="Cost price per person">{money(app.cost_price)}</Row>
-                    <Row label="Margin">
+                    <Row label="Cost per guest">{money(app.cost_price)}</Row>
+                    <Row label="Profit">
                       {money(margin(num(app.selling_price), num(app.cost_price), num(app.government_fee), app.quantity))}
                     </Row>
                   </>

@@ -29,8 +29,8 @@ export function amount(formData: FormData, key: string): number | null {
 }
 
 /**
- * Reads and checks the quote fields (company, visa, people, fees, price,
- * terms) shared by the quote form and the direct-sale form.
+ * Reads and checks the quote fields (company, visa, guests, selling price,
+ * service fee, cost, terms) shared by the quote form and the direct-sale form.
  */
 export async function parseQuote(
   formData: FormData,
@@ -49,21 +49,17 @@ export async function parseQuote(
 
   const quantity = Math.floor(Number(text(formData, "quantity")));
   if (!Number.isFinite(quantity) || quantity < 1 || quantity > 99) {
-    return { error: "Number of people must be between 1 and 99." };
+    return { error: "Number of guests must be between 1 and 99." };
   }
 
-  const governmentFee = amount(formData, "government_fee");
   const serviceCharge = amount(formData, "service_charge");
   const sellingPrice = amount(formData, "selling_price");
-  if (governmentFee === null || serviceCharge === null || sellingPrice === null) {
-    return { error: "Fees and prices must be numbers of zero or more." };
+  if (serviceCharge === null || sellingPrice === null) {
+    return { error: "Prices must be numbers of zero or more." };
   }
-  if (sellingPrice <= 0) return { error: "Enter the selling price per person." };
-  if (sellingPrice + 0.001 < governmentFee + serviceCharge) {
-    return {
-      error:
-        "The selling price per person must cover the government fee plus the service charge — the service charge is VAT-inclusive and sits inside the price.",
-    };
+  if (sellingPrice <= 0) return { error: "Enter the selling price per guest." };
+  if (sellingPrice + 0.001 < serviceCharge) {
+    return { error: "The service fee is part of the selling price, so it can't be more than the price." };
   }
 
   const values: QuoteValues = {
@@ -72,7 +68,9 @@ export async function parseQuote(
     product_name: productName,
     country_code: product?.country_code ?? null,
     quantity,
-    government_fee: governmentFee,
+    // No longer entered: anything paid out goes in cost. Kept at 0 so the
+    // column and margin() still work.
+    government_fee: 0,
     service_charge: serviceCharge,
     selling_price: sellingPrice,
     terms: text(formData, "terms") || product?.terms || PLACEHOLDER_TERMS,
@@ -80,7 +78,7 @@ export async function parseQuote(
 
   if (can.seeCosts(staff.role)) {
     const cost = amount(formData, "cost_price");
-    if (cost === null) return { error: "Cost price must be a number of zero or more." };
+    if (cost === null) return { error: "Cost must be a number of zero or more." };
     values.cost_price = cost;
   }
 

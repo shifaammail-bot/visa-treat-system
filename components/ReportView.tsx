@@ -28,7 +28,7 @@ export function ReportView({
         <Stat label="Leads" value={String(report.leadCount)} sub={`${formatDate(report.period.from)} – ${formatDate(report.period.to)}`} />
         <Stat label="Conversion" value={pct(report.conversion)} sub={`${report.convertedCount} of ${report.leadCount} invoiced`} />
         <Stat label="Income" value={money(report.income)} sub={`${report.invoiceCount} invoices`} />
-        {showMargin && <Stat label="Margin" value={money(report.margin)} sub="Selling − cost − government fee" />}
+        {showMargin && <Stat label="Profit" value={money(report.margin)} sub="(Selling − cost) × guests" />}
         <Stat label="Outstanding" value={money(report.outstanding)} sub={`${report.receivables.length} unpaid invoices, all time`} />
       </div>
 

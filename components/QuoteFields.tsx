@@ -19,7 +19,6 @@ export type QuoteInitial = {
   product_id: string | null;
   product_name: string;
   quantity: number;
-  government_fee: number;
   service_charge: number;
   selling_price: number;
   cost_price: number | null;
@@ -40,8 +39,8 @@ type Props = {
 const str = (n: number) => (n ? String(n) : "");
 
 /**
- * Company, visa, people, fees, price and terms, with a live VAT preview from
- * lib/vat.ts. No <form> of its own: used inside the quote form and the
+ * Company, visa, guests, selling price, service fee, cost and terms, with a
+ * live VAT preview from lib/vat.ts. No <form> of its own: used inside the quote form and the
  * direct-sale form.
  */
 export function QuoteFields({ countryCode, issuers, products, showCosts, initial, onProductCountry }: Props) {
@@ -49,7 +48,6 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
   const [productId, setProductId] = useState(initial.product_id ?? "");
   const [productName, setProductName] = useState(initial.product_name);
   const [quantity, setQuantity] = useState(String(initial.quantity || 1));
-  const [govFee, setGovFee] = useState(str(initial.government_fee));
   const [service, setService] = useState(str(initial.service_charge));
   const [selling, setSelling] = useState(str(initial.selling_price));
   const [cost, setCost] = useState(str(initial.cost_price ?? 0));
@@ -66,9 +64,8 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
     if (!p) return;
     onProductCountry?.(p.country_code);
     setProductName(p.name);
-    setGovFee(str(p.government_fee));
     setService(str(p.default_service_charge));
-    setSelling(str(p.default_selling_price || p.government_fee + p.default_service_charge));
+    setSelling(str(p.default_selling_price));
     if (p.terms) setTerms(p.terms);
     if (!issuerId && p.default_issuer_id && issuers.some((i) => i.id === p.default_issuer_id)) {
       setIssuerId(p.default_issuer_id);
@@ -79,8 +76,8 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
     () => vatSplit(Number(selling) || 0, Number(service) || 0, Number(quantity) || 1, issuer?.taxInvoice ?? false),
     [selling, service, quantity, issuer]
   );
-  const people = Math.max(1, Math.floor(Number(quantity) || 1));
-  const tooLow = Number(selling) > 0 && Number(selling) + 0.001 < (Number(govFee) || 0) + (Number(service) || 0);
+  const guests = Math.max(1, Math.floor(Number(quantity) || 1));
+  const tooLow = Number(selling) > 0 && Number(selling) + 0.001 < (Number(service) || 0);
 
   return (
     <div className="space-y-5">
@@ -141,8 +138,8 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
         <div className="flex gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            <strong>Placeholder rate.</strong> These fees are not the real price list yet. Check the government
-            fee and charge before sending this quote.
+            <strong>Placeholder rate.</strong> These prices are not the real price list yet. Check them before
+            sending this quote.
           </p>
         </div>
       )}
@@ -159,7 +156,7 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="People">
+        <Field label="Guests">
           <input
             name="quantity"
             type="number"
@@ -172,29 +169,7 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
             className={inputClass}
           />
         </Field>
-        <Field label="Government fee" hint="Per person. No VAT.">
-          <input
-            name="government_fee"
-            type="number"
-            min="0"
-            step="0.01"
-            value={govFee}
-            onChange={(e) => setGovFee(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Service charge" hint="Per person, VAT-inclusive.">
-          <input
-            name="service_charge"
-            type="number"
-            min="0"
-            step="0.01"
-            value={service}
-            onChange={(e) => setService(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Selling price" hint="Per person. What the client pays.">
+        <Field label="Selling price" hint="Per guest. What the client pays.">
           <input
             name="selling_price"
             type="number"
@@ -206,8 +181,19 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
             className={inputClass}
           />
         </Field>
+        <Field label="Service fee" hint="Per guest, inside the selling price. VAT is taken from this.">
+          <input
+            name="service_charge"
+            type="number"
+            min="0"
+            step="0.01"
+            value={service}
+            onChange={(e) => setService(e.target.value)}
+            className={inputClass}
+          />
+        </Field>
         {showCosts && (
-          <Field label="Cost price" hint="Per person. Admin and managers only.">
+          <Field label="Cost" hint="Per guest. What we pay out. Admin and managers only.">
             <input
               name="cost_price"
               type="number"
@@ -223,8 +209,8 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
 
       {tooLow && (
         <Notice tone="warn">
-          The selling price is less than the government fee plus the service charge. The service charge sits
-          inside the price, so the price has to cover both.
+          The service fee is more than the selling price. The service fee is part of the price, so it can&apos;t
+          be bigger than it.
         </Notice>
       )}
 
@@ -234,20 +220,16 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
         </p>
         <dl className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
           <div className="flex justify-between">
-            <dt className="text-navy/60">Government fees ({people} × {money(Number(govFee) || 0)})</dt>
-            <dd className="tabular-nums">{money((Number(govFee) || 0) * people)}</dd>
+            <dt className="text-navy/60">
+              {guests} guest{guests === 1 ? "" : "s"} × {money(Number(selling) || 0)}
+            </dt>
+            <dd className="tabular-nums">{money(split.grandTotal)}</dd>
           </div>
           {split.taxable_supply ? (
-            <>
-              <div className="flex justify-between">
-                <dt className="text-navy/60">Service charge excl. VAT</dt>
-                <dd className="tabular-nums">{money(split.taxable)}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-navy/60">VAT 5% (inside the service charge)</dt>
-                <dd className="tabular-nums">{money(split.vat)}</dd>
-              </div>
-            </>
+            <div className="flex justify-between">
+              <dt className="text-navy/60">VAT 5% inside the service fee</dt>
+              <dd className="tabular-nums">{money(split.vat)}</dd>
+            </div>
           ) : (
             <div className="flex justify-between">
               <dt className="text-navy/60">VAT</dt>
@@ -256,10 +238,8 @@ export function QuoteFields({ countryCode, issuers, products, showCosts, initial
           )}
           {showCosts && (
             <div className="flex justify-between">
-              <dt className="text-navy/60">Margin</dt>
-              <dd className="tabular-nums">
-                {money(margin(Number(selling) || 0, Number(cost) || 0, Number(govFee) || 0, people))}
-              </dd>
+              <dt className="text-navy/60">Profit</dt>
+              <dd className="tabular-nums">{money(margin(Number(selling) || 0, Number(cost) || 0, 0, guests))}</dd>
             </div>
           )}
           <div className="flex justify-between border-t border-navy/10 pt-1.5 font-bold sm:col-span-2">

@@ -24,8 +24,8 @@ export const getProducts = cache(async (): Promise<VisaProduct[]> => {
 /** Used when a product has no terms of its own yet. */
 export const PLACEHOLDER_TERMS = [
   "Placeholder terms — destination-specific wording to follow.",
-  "The government visa fee is collected on behalf of the issuing authority, is non-refundable and is not subject to VAT.",
-  "The service charge covers document review, form filling and appointment booking. It is non-refundable once the application has been submitted.",
+  "Visa fees paid to the embassy or issuing authority are non-refundable.",
+  "The service fee covers document review, form filling and appointment booking. It is non-refundable once the application has been submitted.",
   "Visa approval, processing time and validity are decided solely by the embassy or authority. We cannot guarantee an outcome.",
   "The applicant is responsible for the accuracy and authenticity of all documents provided.",
 ].join("\n");

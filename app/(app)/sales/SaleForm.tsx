@@ -150,7 +150,6 @@ export function SaleForm(props: Props) {
             product_id: null,
             product_name: "",
             quantity: 1,
-            government_fee: 0,
             service_charge: 0,
             selling_price: 0,
             cost_price: showCosts ? 0 : null,

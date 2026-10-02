@@ -20,7 +20,6 @@ type Props = {
     | "ref"
     | "quantity"
     | "product_name"
-    | "government_fee"
     | "service_charge"
     | "selling_price"
     | "taxable_amount"
@@ -76,9 +75,7 @@ export function DocumentView({ kind, issuer, app, client, countryName, payments 
   const badge = kind === "quotation" ? "QUOTATION" : taxInvoice ? "TAX INVOICE" : "INVOICE";
 
   const people = app.quantity;
-  const govTotal = num(app.government_fee) * people;
   const serviceTotal = num(app.service_charge) * people;
-  const other = Math.round((num(app.grand_total) - govTotal - serviceTotal) * 100) / 100;
   const owed = balance(num(app.grand_total), payments.map((p) => ({ amount: num(p.amount) })));
   const paid = num(app.grand_total) - owed;
 
@@ -173,7 +170,7 @@ export function DocumentView({ kind, issuer, app, client, countryName, payments 
         <thead>
           <tr className="border-b border-navy/20 text-left text-xs uppercase tracking-wide text-navy/50">
             <th className="pb-2 font-bold">Description</th>
-            <th className="pb-2 text-right font-bold">Qty</th>
+            <th className="pb-2 text-right font-bold">Guests</th>
             <th className="pb-2 text-right font-bold">Unit price</th>
             <th className="pb-2 text-right font-bold">Amount</th>
           </tr>
@@ -191,16 +188,14 @@ export function DocumentView({ kind, issuer, app, client, countryName, payments 
       {/* Totals */}
       <section className="mt-4 flex justify-end">
         <div className="w-full max-w-sm">
-          <Line label="Government fees (disbursement, no VAT)" value={money(govTotal)} />
-          <Line label={taxInvoice ? "Service charges (incl. VAT)" : "Service charges"} value={money(serviceTotal)} />
+          <Line strong label="Total (AED)" value={money(app.grand_total)} />
           {taxInvoice && (
             <>
+              <Line sub label="Includes service fees (incl. VAT)" value={money(serviceTotal)} />
               <Line sub label="Taxable amount" value={money(app.taxable_amount)} />
               <Line sub label="VAT 5%" value={money(app.vat_amount)} />
             </>
           )}
-          {other !== 0 && <Line label="Other charges (no VAT)" value={money(other)} />}
-          <Line strong label="Total (AED)" value={money(app.grand_total)} />
           {kind === "invoice" && (
             <>
               <Line label="Paid" value={money(paid)} />
