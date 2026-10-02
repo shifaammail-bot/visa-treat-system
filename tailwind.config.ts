@@ -9,8 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        navy: { DEFAULT: "#0B0C10", 800: "#16181F", 700: "#22252E", 600: "#353945" },
+        mint: { DEFAULT: "#2FE0C2", 600: "#1FBFA4", 50: "#E9FCF8" },
+      },
+      fontFamily: {
+        sans: ["var(--font-manrope)", "system-ui", "sans-serif"],
       },
     },
   },
