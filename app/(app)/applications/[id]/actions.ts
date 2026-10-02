@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { PLACEHOLDER_TERMS, getProducts } from "@/lib/catalogue";
 import { loadApplication, requireStaff } from "@/lib/context";
+import { dbError } from "@/lib/db";
 import { dubaiDate } from "@/lib/format";
-import { allowedIssuers, getIssuers } from "@/lib/issuers";
 import { can } from "@/lib/permissions";
+import { amount, parseQuote } from "@/lib/quote-input";
 import { NEXT_STATUS } from "@/lib/status";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PaymentMethod, Status } from "@/lib/types";
@@ -13,16 +13,6 @@ import type { PaymentMethod, Status } from "@/lib/types";
 export type ActionResult = { error?: string; ok?: string } | null;
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
-
-function amount(formData: FormData, key: string): number | null {
-  const raw = text(formData, key);
-  if (raw === "") return 0;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
-}
-
-/** The database's message without the Postgres prefix. */
-const dbError = (message: string) => message.replace(/^.*?ERROR:\s*/i, "");
 
 function refresh(id: string) {
   revalidatePath(`/applications/${id}`);
@@ -42,55 +32,15 @@ export async function saveQuote(_prev: ActionResult, formData: FormData): Promis
   if (app.invoice_number) return { error: "This application is invoiced; its figures are locked." };
   if (app.status === "cancelled") return { error: "This application is cancelled." };
 
-  const issuers = allowedIssuers(await getIssuers(), staff);
-  const issuer = issuers.find((i) => i.id === text(formData, "issued_by"));
-  if (!issuer) return { error: "Choose which company issues this." };
+  const parsed = await parseQuote(formData, staff);
+  if ("error" in parsed) return parsed;
+  const { values } = parsed;
 
-  const productId = text(formData, "product_id");
-  const product = productId ? (await getProducts()).find((p) => p.id === productId) : undefined;
-  if (productId && !product) return { error: "That visa product no longer exists." };
-
-  const productName = product ? product.name : text(formData, "product_name");
-  if (!productName) return { error: "Describe the visa (or pick a product)." };
-
-  const quantity = Math.floor(Number(text(formData, "quantity")));
-  if (!Number.isFinite(quantity) || quantity < 1 || quantity > 99) {
-    return { error: "Number of people must be between 1 and 99." };
-  }
-
-  const governmentFee = amount(formData, "government_fee");
-  const serviceCharge = amount(formData, "service_charge");
-  const sellingPrice = amount(formData, "selling_price");
-  if (governmentFee === null || serviceCharge === null || sellingPrice === null) {
-    return { error: "Fees and prices must be numbers of zero or more." };
-  }
-  if (sellingPrice <= 0) return { error: "Enter the selling price per person." };
-  if (sellingPrice + 0.001 < governmentFee + serviceCharge) {
-    return {
-      error:
-        "The selling price per person must cover the government fee plus the service charge — the service charge is VAT-inclusive and sits inside the price.",
-    };
-  }
-
-  const update: Record<string, unknown> = {
-    issued_by: issuer.id,
-    product_id: product?.id ?? null,
-    product_name: productName,
-    country_code: product?.country_code ?? app.country_code,
-    quantity,
-    government_fee: governmentFee,
-    service_charge: serviceCharge,
-    selling_price: sellingPrice,
-    terms: text(formData, "terms") || product?.terms || PLACEHOLDER_TERMS,
+  const update = {
+    ...values,
+    country_code: values.country_code ?? app.country_code,
     status: app.status === "enquiry" ? "quoted" : app.status,
   };
-
-  // Cost price is admin/manager only. Others never see it, so never overwrite it.
-  if (can.seeCosts(staff.role)) {
-    const cost = amount(formData, "cost_price");
-    if (cost === null) return { error: "Cost price must be a number of zero or more." };
-    update.cost_price = cost;
-  }
 
   const { error } = await createAdminClient().from("visa_applications").update(update).eq("id", id);
   if (error) return { error: dbError(error.message) };

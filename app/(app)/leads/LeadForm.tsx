@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState, useFormStatus } from "react-dom";
-import { SOURCE_LABEL, VISA_TYPE_LABEL } from "@/lib/format";
+import { LEAD_SOURCE_LABEL, VISA_TYPE_LABEL } from "@/lib/format";
 import type { Country } from "@/lib/types";
 import { Card, Field, Notice, buttonClass, inputClass } from "@/components/ui";
 import { createLead } from "./actions";
@@ -97,7 +97,7 @@ export function LeadForm({ countries, consultants, me, existingClient }: Props) 
               <option value="" disabled>
                 Choose…
               </option>
-              {Object.entries(SOURCE_LABEL).map(([value, label]) => (
+              {Object.entries(LEAD_SOURCE_LABEL).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>

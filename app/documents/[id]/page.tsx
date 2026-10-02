@@ -6,6 +6,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Client } from "@/lib/types";
 import { balance, money } from "@/lib/vat";
 import { BrandLogo } from "@/components/BrandLogo";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { secondaryButtonClass } from "@/components/ui";
 import { PrintButton } from "./PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +49,7 @@ export default async function DocumentPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { type?: string };
+  searchParams: { type?: string; new?: string };
 }) {
   const staff = await requireStaff();
   const app = await loadApplication(params.id, staff);
@@ -84,8 +87,19 @@ export default async function DocumentPage({
 
   return (
     <div className="min-h-screen bg-navy/5 py-8 print:bg-white print:py-0">
-      <div className="mx-auto mb-4 flex max-w-[210mm] justify-end gap-2 px-4 print:hidden">
-        <PrintButton />
+      <div className="mx-auto mb-4 max-w-[210mm] space-y-3 px-4 print:hidden">
+        {searchParams.new && (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {kind === "invoice" ? "Invoice" : "Quotation"} <strong>{number}</strong> issued.
+          </p>
+        )}
+        <div className="flex flex-wrap justify-between gap-2">
+          <Link href={`/applications/${app.id}`} className={secondaryButtonClass}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to sale
+          </Link>
+          <PrintButton />
+        </div>
       </div>
 
       <article className="mx-auto max-w-[210mm] bg-white px-8 py-10 shadow-sm sm:px-12 print:max-w-none print:px-0 print:py-0 print:shadow-none">

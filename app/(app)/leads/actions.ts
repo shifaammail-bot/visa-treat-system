@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCountries } from "@/lib/catalogue";
 import { canSeeClient, getStaffList, requireStaff } from "@/lib/context";
-import { SOURCE_LABEL, VISA_TYPE_LABEL } from "@/lib/format";
+import { LEAD_SOURCE_LABEL, VISA_TYPE_LABEL } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Source, VisaType } from "@/lib/types";
@@ -33,7 +33,7 @@ export async function createLead(_prev: LeadResult, formData: FormData): Promise
   const country = (await getCountries()).find((c) => c.code === countryCode);
   if (!country) return { error: "Choose a destination." };
   if (!(visaType in VISA_TYPE_LABEL)) return { error: "Choose a visa type." };
-  if (!(source in SOURCE_LABEL)) return { error: "Choose where the lead came from." };
+  if (!(source in LEAD_SOURCE_LABEL)) return { error: "Choose where the lead came from." };
   if (travelFrom && travelTo && travelTo < travelFrom) {
     return { error: "The return date is before the travel date." };
   }

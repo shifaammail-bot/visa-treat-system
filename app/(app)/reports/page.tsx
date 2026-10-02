@@ -116,7 +116,9 @@ export default async function ReportsPage({
                   <Stat
                     label="Applications sold"
                     value={String(m.sales.length)}
-                    sub={m.leads ? `${pct(m.sales.length / m.leads)} conversion` : "No leads this month"}
+                    sub={`${m.fromLeads} from leads · ${m.sales.length - m.fromLeads} direct${
+                      m.leads ? ` · ${pct(m.fromLeads / m.leads)} lead conversion` : ""
+                    }`}
                   />
                   <Stat label="Profit" value={money(m.profit)} sub={`${pct(m.profit / MONTHLY_PROFIT_TARGET)} of target`} />
                 </div>

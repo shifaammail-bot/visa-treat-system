@@ -9,14 +9,23 @@ export const STATUS_LABEL: Record<Status, string> = {
   cancelled: "Cancelled",
 };
 
-export const SOURCE_LABEL: Record<Source, string> = {
+/** Campaign channels a lead can come from. */
+export const LEAD_SOURCE_LABEL: Record<Exclude<Source, "direct">, string> = {
   google_ads: "Google Ads",
-  organic: "Organic",
+  organic: "Organic / SEO",
   whatsapp: "WhatsApp",
-  social: "Social",
+  social: "Social media ads",
   agent: "Agent",
   other: "Other",
 };
+
+export const SOURCE_LABEL: Record<Source, string> = {
+  ...LEAD_SOURCE_LABEL,
+  direct: "Direct sale",
+};
+
+/** Campaign leads only — direct sales are not leads and don't count toward conversion. */
+export const isLead = (row: { source: Source | null }) => row.source !== "direct";
 
 export const VISA_TYPE_LABEL: Record<VisaType, string> = {
   tourist: "Tourist",

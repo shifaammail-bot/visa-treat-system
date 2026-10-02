@@ -20,7 +20,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: { q?: 
 
   return (
     <>
-      <PageHeader title="Leads" description="Enquiries not yet quoted.">
+      <PageHeader title="Leads" description="Enquiries from social media ads and SEO campaigns, not yet quoted. Direct sales skip this — use New invoice.">
         <Link href="/leads/new" className={buttonClass}>
           <Plus className="h-4 w-4" />
           New lead

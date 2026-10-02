@@ -1,5 +1,5 @@
 export type Status = "enquiry" | "quoted" | "submitted" | "approved" | "rejected" | "cancelled";
-export type Source = "google_ads" | "organic" | "whatsapp" | "social" | "agent" | "other";
+export type Source = "google_ads" | "organic" | "whatsapp" | "social" | "agent" | "other" | "direct";
 export type VisaType = "tourist" | "visit" | "transit" | "business" | "student" | "work" | "other";
 export type PaymentMethod = "cash" | "card" | "bank transfer" | "link" | "cheque";
 

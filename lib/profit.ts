@@ -1,4 +1,4 @@
-import { dubaiDate, num } from "@/lib/format";
+import { dubaiDate, isLead, num } from "@/lib/format";
 import type { Source, Status, VisaType } from "@/lib/types";
 import { margin } from "@/lib/vat";
 
@@ -73,7 +73,10 @@ export function monthsEnding(last: string, n: number): string[] {
 
 export type MonthSummary = {
   month: string;
+  /** Campaign leads received (direct sales are not leads). */
   leads: number;
+  /** Of the sales, how many started as a campaign lead. */
+  fromLeads: number;
   sales: SaleRow[];
   profit: number;
 };
@@ -84,7 +87,8 @@ export function summariseMonth(rows: SaleRow[], month: string): MonthSummary {
     .sort((a, b) => a.invoice_date.localeCompare(b.invoice_date));
   return {
     month,
-    leads: rows.filter((r) => monthOf(r.created_at) === month).length,
+    leads: rows.filter((r) => isLead(r) && monthOf(r.created_at) === month).length,
+    fromLeads: sales.filter(isLead).length,
     sales,
     profit: sum(sales.map(profitOf)),
   };
@@ -126,7 +130,7 @@ export function summariseWeeks(rows: SaleRow[], month: string): WeekSummary[] {
 
   const weekOf = (date: string) => weeks.find((w) => date >= w.from && date <= w.to);
   for (const r of rows) {
-    const created = weekOf(dubaiDate(r.created_at));
+    const created = isLead(r) ? weekOf(dubaiDate(r.created_at)) : undefined;
     if (created) created.leads += 1;
     if (isSold(r)) {
       const sold = weekOf(r.invoice_date);

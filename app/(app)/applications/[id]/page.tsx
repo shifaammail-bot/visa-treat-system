@@ -219,7 +219,7 @@ export default async function ApplicationPage({ params }: { params: { id: string
             )}
           </Card>
 
-          <Card title="Lead">
+          <Card title={app.source === "direct" ? "Sale" : "Lead"}>
             <dl className="divide-y divide-navy/5">
               <Row label="Destination">{country?.name ?? app.country_code}</Row>
               <Row label="Visa type">{app.visa_type ? VISA_TYPE_LABEL[app.visa_type] : "—"}</Row>

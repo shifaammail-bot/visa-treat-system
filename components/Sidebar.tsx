@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Plus,
   Stamp,
   UserCog,
   Users,
@@ -41,9 +42,11 @@ const ROLE_LABEL = {
 type Props = {
   items: NavItem[];
   staff: { full_name: string; email: string; role: keyof typeof ROLE_LABEL };
+  /** Show the quick "New invoice / quote" buttons. */
+  canSell: boolean;
 };
 
-export function Sidebar({ items, staff }: Props) {
+export function Sidebar({ items, staff, canSell }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -75,6 +78,27 @@ export function Sidebar({ items, staff }: Props) {
           <BrandLogo slug="visatreat" tradeName="Visa Treat" accentColour="#2FE0C2" on="dark" className="h-8" />
           <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.2em] text-white/40">Desk</p>
         </div>
+
+        {canSell && (
+          <div className="flex gap-2 border-b border-navy-700 p-3">
+            <Link
+              href="/sales/new?type=invoice"
+              onClick={() => setOpen(false)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-mint px-3 py-2 text-sm font-bold text-navy hover:bg-mint-600"
+            >
+              <Plus className="h-4 w-4" />
+              Invoice
+            </Link>
+            <Link
+              href="/sales/new?type=quotation"
+              onClick={() => setOpen(false)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-navy-600 px-3 py-2 text-sm font-bold text-white hover:border-mint hover:text-mint"
+            >
+              <Plus className="h-4 w-4" />
+              Quote
+            </Link>
+          </div>
+        )}
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {items.map((item) => {

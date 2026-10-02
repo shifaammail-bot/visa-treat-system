@@ -1,5 +1,5 @@
 import { fetchAll, scopeApplications, type Context } from "@/lib/context";
-import { SOURCE_LABEL, dubaiDate, num } from "@/lib/format";
+import { SOURCE_LABEL, dubaiDate, isLead, num } from "@/lib/format";
 import { balanceOf } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Source, Status } from "@/lib/types";
@@ -56,7 +56,7 @@ export type Report = Awaited<ReturnType<typeof buildReport>>;
  * Everything the dashboard and reports show, for one period, scoped to the
  * viewer.
  *
- * - Leads: applications created in the period (Dubai date).
+ * - Leads: campaign leads created in the period (Dubai date); direct sales are not leads.
  * - Conversion: of those leads, the share that reached an invoice.
  * - Income: invoices dated in the period, excluding cancelled.
  * - Receivables: every live invoice with a balance, regardless of period.
@@ -70,7 +70,7 @@ export async function buildReport(ctx: Context, period: Period) {
   );
 
   const inPeriod = (d: string) => d >= period.from && d <= period.to;
-  const leads = rows.filter((r) => inPeriod(dubaiDate(r.created_at)));
+  const leads = rows.filter((r) => isLead(r) && inPeriod(dubaiDate(r.created_at)));
   const converted = leads.filter((r) => r.invoice_number && r.status !== "cancelled");
   const invoiced = rows.filter((r) => r.invoice_number && r.status !== "cancelled" && inPeriod(r.invoice_date));
   const receivables = rows

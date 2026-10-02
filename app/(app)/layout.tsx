@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { navFor } from "@/lib/nav";
+import { can } from "@/lib/permissions";
 import { signOut } from "@/app/actions";
 import { Sidebar } from "@/components/Sidebar";
 
@@ -40,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar
         items={navFor(staff.role)}
         staff={{ full_name: staff.full_name, email: staff.email, role: staff.role }}
+        canSell={can.editSale(staff.role)}
       />
       <main className="min-w-0 flex-1 bg-white">{children}</main>
     </div>

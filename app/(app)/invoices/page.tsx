@@ -1,11 +1,14 @@
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { getContext, getStaffList, nameOf } from "@/lib/context";
+import { can } from "@/lib/permissions";
 import { balanceOf, listApplications } from "@/lib/queries";
 import { money } from "@/lib/vat";
 import { num } from "@/lib/format";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { ListToolbar } from "@/components/ListToolbar";
 import { PageHeader } from "@/components/PageHeader";
-import { Stat } from "@/components/ui";
+import { Stat, buttonClass } from "@/components/ui";
 
 export default async function InvoicesPage({ searchParams }: { searchParams: { q?: string; status?: string } }) {
   const ctx = await getContext();
@@ -22,7 +25,14 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { q
 
   return (
     <>
-      <PageHeader title="Invoices" description="Every invoice issued, with what is still owed." />
+      <PageHeader title="Invoices" description="Every invoice issued, with what is still owed.">
+        {can.editSale(ctx.staff.role) && (
+          <Link href="/sales/new?type=invoice" className={buttonClass}>
+            <Plus className="h-4 w-4" />
+            New invoice
+          </Link>
+        )}
+      </PageHeader>
       <div className="space-y-4 px-4 py-6 md:px-8">
         <div className="grid gap-4 sm:grid-cols-3">
           <Stat label="Invoices" value={String(live.length)} sub="Excluding cancelled" />
@@ -44,7 +54,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { q
           staffName={(e) => nameOf(staffList, e)}
           columns={["client", "trip", "brand", "consultant", "status", "total", "balance"]}
           document="invoice"
-          empty={unpaidOnly ? "Nothing outstanding." : "No invoices yet."}
+          empty={unpaidOnly ? "Nothing outstanding." : "No invoices yet. Use New invoice for a direct sale."}
         />
       </div>
     </>
