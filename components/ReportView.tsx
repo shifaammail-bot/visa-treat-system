@@ -7,17 +7,15 @@ import { BarList, Card, Stat, TableLink, TableWrap, tdClass, thClass } from "@/c
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
 
-/** The figures shared by the dashboard and the reports page. */
+/** The dashboard's figures for one period. */
 export function ReportView({
   report,
   ctx,
   staffList,
-  detailed = false,
 }: {
   report: Report;
   ctx: Context;
   staffList: StaffName[];
-  detailed?: boolean;
 }) {
   const showMargin = can.seeCosts(ctx.staff.role);
   const showConsultants = ctx.staff.role !== "consultant";
@@ -70,38 +68,6 @@ export function ReportView({
         </Card>
       </div>
 
-      {detailed && showConsultants && (
-        <Card title="Consultants">
-          <TableWrap>
-            <thead>
-              <tr>
-                <th className={thClass}>Consultant</th>
-                <th className={`${thClass} text-right`}>Leads</th>
-                <th className={`${thClass} text-right`}>Invoices</th>
-                <th className={`${thClass} text-right`}>Income</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from(
-                new Set([...report.leadsByConsultant.map((g) => g.key), ...report.byConsultant.map((g) => g.key)])
-              ).map((email) => {
-                const income = report.byConsultant.find((g) => g.key === email);
-                return (
-                  <tr key={email}>
-                    <td className={tdClass}>{staffByEmail.get(email)?.full_name ?? email}</td>
-                    <td className={`${tdClass} text-right tabular-nums`}>
-                      {report.leadsByConsultant.find((g) => g.key === email)?.count ?? 0}
-                    </td>
-                    <td className={`${tdClass} text-right tabular-nums`}>{income?.count ?? 0}</td>
-                    <td className={`${tdClass} text-right tabular-nums`}>{money(income?.value ?? 0)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </TableWrap>
-        </Card>
-      )}
-
       <Card title="Outstanding receivables">
         {report.receivables.length === 0 ? (
           <p className="text-sm text-navy/50">Nothing owed.</p>
@@ -117,7 +83,7 @@ export function ReportView({
               </tr>
             </thead>
             <tbody>
-              {report.receivables.slice(0, detailed ? 200 : 8).map((r) => (
+              {report.receivables.slice(0, 8).map((r) => (
                 <tr key={r.id}>
                   <td className={tdClass}>
                     <TableLink href={`/applications/${r.id}`}>{r.invoice_number}</TableLink>

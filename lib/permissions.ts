@@ -20,7 +20,8 @@ export const can = {
   recordPayment: (role: Role) => ROLES.includes(role),
   assignConsultant: (role: Role) => role === "admin" || role === "manager",
   manageStaff: (role: Role) => role === "admin",
-  seeReports: (role: Role) => role !== "consultant",
+  /** Admin-only for this phase; staff-scoped reports come later. */
+  seeReports: (role: Role) => role === "admin",
 };
 
 /** Restricted to some brands (a manager with issuer_ids set). */

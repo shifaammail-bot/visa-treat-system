@@ -7,6 +7,47 @@ body {
   color: #0B0C10;
 }
 
+/* Reports runway */
+@keyframes runway-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  25% { transform: translate(-0.5px, 0.5px) rotate(-1.5deg); }
+  50% { transform: translate(0.5px, -0.5px) rotate(1deg); }
+  75% { transform: translate(-0.5px, -0.5px) rotate(-0.5deg); }
+}
+.runway-shake {
+  animation: runway-shake 0.18s linear infinite;
+}
+
+@keyframes runway-confetti {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--x), var(--y)) scale(0.6) rotate(220deg); opacity: 0; }
+}
+.runway-confetti {
+  animation: runway-confetti 1.4s ease-out forwards;
+}
+
+@keyframes runway-trail {
+  0% { opacity: 0; transform: translateY(-50%) scaleX(0.2); }
+  30% { opacity: 1; }
+  100% { opacity: 0.35; transform: translateY(-50%) scaleX(1); }
+}
+.runway-trail {
+  background: linear-gradient(90deg, rgba(47, 224, 194, 0), rgba(47, 224, 194, 0.7));
+  transform-origin: right center;
+  animation: runway-trail 1.6s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .runway-shake,
+  .runway-confetti,
+  .runway-trail {
+    animation: none;
+  }
+  .runway-confetti {
+    display: none;
+  }
+}
+
 @media print {
   @page {
     size: A4;

@@ -4,6 +4,7 @@ import { balanceOf } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Source, Status } from "@/lib/types";
 import { margin } from "@/lib/vat";
+import type { SaleRow } from "@/lib/profit";
 
 type ReportApp = {
   id: string;
@@ -97,7 +98,23 @@ export async function buildReport(ctx: Context, period: Period) {
     byStatus: group(leads, (r) => r.status),
     byBrand: group(invoiced, (r) => r.issued_by ?? "none", (r) => num(r.grand_total)),
     byConsultant: group(invoiced, (r) => r.consultant.toLowerCase(), (r) => num(r.grand_total)),
-    leadsByConsultant: group(leads, (r) => r.consultant.toLowerCase()),
     visaMix: group(leads, (r) => r.product_name),
   };
+}
+
+const SALE_SELECT =
+  "id, ref, created_at, consultant, issued_by, product_name, visa_type, source, quantity, government_fee, selling_price, cost_price, status, invoice_number, invoice_date, client:clients(full_name)";
+
+/** Every application the viewer may see, for the sidebar brand. */
+export async function loadSales(ctx: Context): Promise<SaleRow[]> {
+  const admin = createAdminClient();
+  return fetchAll<SaleRow>(
+    (from, to) =>
+      scopeApplications(admin.from("visa_applications").select(SALE_SELECT), ctx, { includeUnassigned: true })
+        .order("created_at", { ascending: false })
+        .range(from, to) as unknown as PromiseLike<{
+        data: SaleRow[] | null;
+        error: { message: string } | null;
+      }>
+  );
 }

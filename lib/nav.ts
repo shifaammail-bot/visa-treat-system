@@ -23,7 +23,7 @@ export const NAV: NavItem[] = [
   { href: "/quotations", label: "Quotations", icon: "quotations" },
   { href: "/invoices", label: "Invoices", icon: "invoices" },
   { href: "/clients", label: "Clients", icon: "clients" },
-  { href: "/reports", label: "Reports", icon: "reports", roles: ["admin", "manager", "accounts"] },
+  { href: "/reports", label: "Reports", icon: "reports", roles: ["admin"] },
   { href: "/staff", label: "Staff", icon: "staff", roles: ["admin"] },
 ];
 
