@@ -13,6 +13,9 @@ export type Staff = {
   active: boolean;
 };
 
+/** For a case-insensitive exact match with ilike: `_` and `%` are wildcards there. */
+export const escapeLike = (value: string) => value.replace(/[\\%_]/g, (c) => `\\${c}`);
+
 export type Session =
   | { status: "signed-out" }
   | { status: "no-access"; email: string }
@@ -35,7 +38,7 @@ export const getSession = cache(async (): Promise<Session> => {
   const { data: staff } = await createAdminClient()
     .from("staff")
     .select("email, full_name, role, issuer_ids, active")
-    .ilike("email", user.email)
+    .ilike("email", escapeLike(user.email))
     .maybeSingle<Staff>();
 
   if (!staff || !staff.active) return { status: "no-access", email: user.email };

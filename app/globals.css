@@ -6,3 +6,14 @@ body {
   background: #ffffff;
   color: #0B0C10;
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
