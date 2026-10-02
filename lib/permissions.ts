@@ -15,6 +15,8 @@ export const can = {
   seeCosts: (role: Role) => role === "admin" || role === "manager",
   createLead: (role: Role) => role !== "accounts",
   editSale: (role: Role) => role !== "accounts",
+  /** Correct an invoice after it has been issued. Admins only; every edit is recorded. */
+  editIssuedInvoice: (role: Role) => role === "admin",
   editClient: (role: Role) => role !== "accounts",
   /** Every role may take a payment on an application it can see. */
   recordPayment: (role: Role) => ROLES.includes(role),

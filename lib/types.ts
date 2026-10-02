@@ -79,6 +79,9 @@ export type Application = {
   visa_type: VisaType | null;
   travel_from: string | null;
   travel_to: string | null;
+  /** Set when an admin corrects an issued invoice. */
+  edited_at?: string | null;
+  edited_by?: string | null;
 };
 
 /** An application as list pages fetch it: with its client, destination and payments. */
