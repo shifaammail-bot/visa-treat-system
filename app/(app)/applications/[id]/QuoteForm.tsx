@@ -22,11 +22,13 @@ function Submit({ label }: { label: string }) {
 export function QuoteForm({
   applicationId,
   invoiceNumber,
+  lockIssuer,
   ...fields
 }: {
   applicationId: string;
   /** Set when an admin is correcting an issued invoice. */
   invoiceNumber?: string | null;
+  lockIssuer?: boolean;
   countryCode: string;
   issuers: IssuerOption[];
   products: VisaProduct[];
@@ -38,7 +40,7 @@ export function QuoteForm({
   return (
     <form action={action} className="space-y-5">
       <input type="hidden" name="id" value={applicationId} />
-      <QuoteFields {...fields} lockIssuer={!!invoiceNumber} />
+      <QuoteFields {...fields} lockIssuer={lockIssuer} />
       {state?.error && <Notice tone="error">{state.error}</Notice>}
       {state?.ok && <Notice tone="ok">{state.ok}</Notice>}
       <Submit

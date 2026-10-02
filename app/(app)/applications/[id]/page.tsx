@@ -1,4 +1,4 @@
-import { PLACEHOLDER_TERMS, getProducts } from "@/lib/catalogue";
+import { PLACEHOLDER_TERMS, getCountries, getProducts } from "@/lib/catalogue";
 import {
   getContext,
   getStaffList,
@@ -24,6 +24,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { SaleSteps } from "@/components/SaleSteps";
 import { Card, Notice, StatusBadge, TableLink } from "@/components/ui";
 import { DocumentButtons, PaymentForm, StatusButtons } from "./Controls";
+import { DetailsForm, PaymentEditor } from "./EditControls";
 import { QuoteForm } from "./QuoteForm";
 
 function Row({
@@ -73,16 +74,17 @@ export default async function ApplicationPage({
     getStaffList(),
     getIssuers(),
   ]);
+  const countries = await getCountries();
 
   const payments = (paymentRows ?? []) as Payment[];
   const issuer = allIssuers.find((i) => i.id === app.issued_by) ?? null;
   const showCosts = can.seeCosts(staff.role);
-  const adminEditingInvoice =
-    !!app.invoice_number && can.editIssuedInvoice(staff.role);
+  // Admins can correct anything on any sale; others edit until it's invoiced.
+  const isAdmin = can.editIssuedInvoice(staff.role);
+  const adminEditingInvoice = !!app.invoice_number && isAdmin;
   const editable =
     can.editSale(staff.role) &&
-    app.status !== "cancelled" &&
-    (!app.invoice_number || adminEditingInvoice);
+    (isAdmin || (app.status !== "cancelled" && !app.invoice_number));
   const owed = balance(
     num(app.grand_total),
     payments.map((p) => ({ amount: num(p.amount) })),
@@ -150,9 +152,10 @@ export default async function ApplicationPage({
             {adminEditingInvoice && editable && (
               <div className="mb-5">
                 <Notice tone="warn">
-                  You&apos;re editing an issued invoice. The number, date and
-                  company stay the same; the figures, description and terms
-                  change on the PDF. Each edit records your name and the time.
+                  You&apos;re editing an issued invoice as an admin. Changes
+                  show on the PDF straight away. The number, dates and status
+                  are under Sale details. Each edit records your name and the
+                  time.
                   {app.edited_at && (
                     <>
                       {" "}
@@ -170,6 +173,7 @@ export default async function ApplicationPage({
               <QuoteForm
                 applicationId={app.id}
                 invoiceNumber={app.invoice_number}
+                lockIssuer={!isAdmin && !!app.invoice_number}
                 countryCode={app.country_code}
                 issuers={allowed.map((i) => ({
                   id: i.id,
@@ -273,6 +277,7 @@ export default async function ApplicationPage({
                         <p className="text-xs text-navy/60">{p.note}</p>
                       )}
                     </div>
+                    {isAdmin && <PaymentEditor id={app.id} payment={p} />}
                   </li>
                 ))}
               </ul>
@@ -347,7 +352,9 @@ export default async function ApplicationPage({
             title="Client"
             action={
               client && (
-                <TableLink href={`/clients/${client.id}`}>Open</TableLink>
+                <TableLink href={`/clients/${client.id}`}>
+                  {can.editClient(staff.role) ? "Edit" : "Open"}
+                </TableLink>
               )
             }
           >
@@ -363,28 +370,67 @@ export default async function ApplicationPage({
             )}
           </Card>
 
-          <Card title={app.source === "direct" ? "Sale" : "Lead"}>
-            <dl className="divide-y divide-navy/5">
-              <Row label="Destination">{country?.name ?? app.country_code}</Row>
-              <Row label="Visa type">
-                {app.visa_type ? VISA_TYPE_LABEL[app.visa_type] : "—"}
-              </Row>
-              <Row label="Source">
-                {app.source ? SOURCE_LABEL[app.source] : "—"}
-              </Row>
-              <Row label="Consultant">{nameOf(staffList, app.consultant)}</Row>
-              <Row label="Created">{formatDate(app.created_at)}</Row>
-              {app.submitted_at && (
-                <Row label="Submitted">{formatDate(app.submitted_at)}</Row>
-              )}
-              {app.decided_at && (
-                <Row label="Decided">{formatDate(app.decided_at)}</Row>
-              )}
-            </dl>
-            {app.notes && (
-              <p className="mt-3 whitespace-pre-line text-sm text-navy/70">
-                {app.notes}
-              </p>
+          <Card title="Sale details">
+            {can.editSale(staff.role) ? (
+              <DetailsForm
+                id={app.id}
+                isAdmin={isAdmin}
+                countries={countries}
+                consultants={
+                  can.assignConsultant(staff.role)
+                    ? staffList.filter((s) => s.active && s.role !== "accounts")
+                    : null
+                }
+                issuers={allIssuers.map((i) => ({
+                  id: i.id,
+                  trade_name: i.trade_name,
+                  legal_name: i.legal_name,
+                }))}
+                initial={{
+                  country_code: app.country_code,
+                  visa_type: app.visa_type,
+                  source: app.source,
+                  consultant: app.consultant,
+                  notes: app.notes,
+                  status: app.status,
+                  issued_by: app.issued_by,
+                  invoice_number: app.invoice_number,
+                  invoice_date: app.invoice_date,
+                  quotation_number: app.quotation_number,
+                  quotation_date: app.quotation_date,
+                  submitted_at: app.submitted_at,
+                  decided_at: app.decided_at,
+                }}
+              />
+            ) : (
+              <>
+                <dl className="divide-y divide-navy/5">
+                  <Row label="Destination">
+                    {country?.name ?? app.country_code}
+                  </Row>
+                  <Row label="Visa type">
+                    {app.visa_type ? VISA_TYPE_LABEL[app.visa_type] : "—"}
+                  </Row>
+                  <Row label="Source">
+                    {app.source ? SOURCE_LABEL[app.source] : "—"}
+                  </Row>
+                  <Row label="Consultant">
+                    {nameOf(staffList, app.consultant)}
+                  </Row>
+                  <Row label="Created">{formatDate(app.created_at)}</Row>
+                  {app.submitted_at && (
+                    <Row label="Submitted">{formatDate(app.submitted_at)}</Row>
+                  )}
+                  {app.decided_at && (
+                    <Row label="Decided">{formatDate(app.decided_at)}</Row>
+                  )}
+                </dl>
+                {app.notes && (
+                  <p className="mt-3 whitespace-pre-line text-sm text-navy/70">
+                    {app.notes}
+                  </p>
+                )}
+              </>
             )}
           </Card>
         </div>

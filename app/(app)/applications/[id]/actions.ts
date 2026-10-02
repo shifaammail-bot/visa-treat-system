@@ -1,14 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { loadApplication, requireStaff } from "@/lib/context";
 import { dbError } from "@/lib/db";
-import { dubaiDate } from "@/lib/format";
+import {
+  SOURCE_LABEL,
+  STATUS_LABEL,
+  VISA_TYPE_LABEL,
+  dubaiDate,
+} from "@/lib/format";
+import { getCountries } from "@/lib/catalogue";
+import { getStaffList, loadApplication, requireStaff } from "@/lib/context";
+import { allowedIssuers, getIssuers } from "@/lib/issuers";
 import { can } from "@/lib/permissions";
 import { amount, parseQuote } from "@/lib/quote-input";
 import { NEXT_STATUS } from "@/lib/status";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { PaymentMethod, Status } from "@/lib/types";
+import type { PaymentMethod, Source, Status, VisaType } from "@/lib/types";
 
 export type ActionResult = { error?: string; ok?: string } | null;
 
@@ -24,6 +31,34 @@ function refresh(id: string) {
   revalidatePath("/");
 }
 
+/**
+ * An admin correction to any field of a sale, through the database function
+ * that lifts the invoice lock and records who edited and when.
+ */
+async function adminUpdate(
+  id: string,
+  changes: Record<string, unknown>,
+  editedBy: string,
+): Promise<string | null> {
+  const { error } = await createAdminClient().rpc("admin_update_application", {
+    p_application: id,
+    p_changes: changes,
+    p_edited_by: editedBy,
+  });
+  if (!error) return null;
+  if (
+    /admin_update_application/.test(error.message) &&
+    /(schema cache|does not exist|Could not find)/i.test(error.message)
+  ) {
+    return "The database hasn't been updated for admin editing yet. Run supabase/migrations/008-admin-edit-everything.sql in the Supabase SQL editor, then try again.";
+  }
+  if (/invoice_number_key/.test(error.message))
+    return "That invoice number is already used by another sale.";
+  if (/quotation_number_key/.test(error.message))
+    return "That quotation number is already used by another sale.";
+  return dbError(error.message);
+}
+
 export async function saveQuote(
   _prev: ActionResult,
   formData: FormData,
@@ -34,9 +69,10 @@ export async function saveQuote(
 
   if (!can.editSale(staff.role))
     return { error: "Your role can't change prices." };
-  if (app.status === "cancelled")
+  const isAdmin = can.editIssuedInvoice(staff.role);
+  if (app.status === "cancelled" && !isAdmin)
     return { error: "This application is cancelled." };
-  if (app.invoice_number && !can.editIssuedInvoice(staff.role)) {
+  if (app.invoice_number && !isAdmin) {
     return {
       error:
         "This application is invoiced. Only an admin can change its figures.",
@@ -47,33 +83,24 @@ export async function saveQuote(
   if ("error" in parsed) return parsed;
   const { values } = parsed;
 
-  // An issued invoice: admins correct it through the database function, which
-  // keeps the number, date and company, records the edit and refuses a total
-  // below what has been paid.
-  if (app.invoice_number) {
-    if (values.issued_by !== app.issued_by) {
-      return {
-        error: "An issued invoice stays with the company that issued it.",
-      };
-    }
-    const { error } = await createAdminClient().rpc(
-      "admin_update_invoiced_application",
+  // Admins: any sale, issued or not, any company — through the audited function.
+  if (isAdmin) {
+    const error = await adminUpdate(
+      id,
       {
-        p_application: id,
-        p_product_id: values.product_id,
-        p_product_name: values.product_name,
-        p_quantity: values.quantity,
-        p_service_charge: values.service_charge,
-        p_selling_price: values.selling_price,
-        p_cost_price: values.cost_price ?? null,
-        p_terms: values.terms,
-        p_edited_by: staff.email,
+        ...values,
+        cost_price: values.cost_price ?? app.cost_price,
+        country_code: values.country_code ?? app.country_code,
+        status: app.status === "enquiry" ? "quoted" : app.status,
       },
+      staff.email,
     );
-    if (error) return { error: dbError(error.message) };
+    if (error) return { error };
     refresh(id);
     return {
-      ok: `Invoice ${app.invoice_number} updated. The PDF now shows the new figures.`,
+      ok: app.invoice_number
+        ? `Saved. Invoice ${app.invoice_number} now shows the new figures.`
+        : "Quote saved.",
     };
   }
 
@@ -200,4 +227,154 @@ export async function recordPayment(
       ? `Payment recorded as receipt ${receipt}.`
       : "Payment recorded.",
   };
+}
+
+const STATUSES = Object.keys(STATUS_LABEL) as Status[];
+const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+/**
+ * Destination, visa type, source, consultant and notes — and for admins also
+ * status, company-independent document numbers and dates.
+ */
+export async function saveDetails(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const staff = await requireStaff();
+  const id = text(formData, "id");
+  const app = await loadApplication(id, staff);
+  if (!can.editSale(staff.role))
+    return { error: "Your role can't change sale details." };
+  const isAdmin = can.editIssuedInvoice(staff.role);
+
+  const countryCode = text(formData, "country_code");
+  if (!(await getCountries()).some((c) => c.code === countryCode))
+    return { error: "Choose the destination." };
+  const visaType = text(formData, "visa_type") as VisaType;
+  if (!(visaType in VISA_TYPE_LABEL)) return { error: "Choose a visa type." };
+  const source = text(formData, "source") as Source;
+  if (!(source in SOURCE_LABEL)) return { error: "Choose the source." };
+
+  const changes: Record<string, unknown> = {
+    country_code: countryCode,
+    visa_type: visaType,
+    source,
+    notes: text(formData, "notes") || null,
+  };
+
+  const consultant = text(formData, "consultant");
+  if (consultant && can.assignConsultant(staff.role)) {
+    const match = (await getStaffList()).find(
+      (s) => s.email.toLowerCase() === consultant.toLowerCase(),
+    );
+    if (!match) return { error: "That consultant isn't on the staff list." };
+    changes.consultant = match.email;
+  }
+
+  if (!isAdmin) {
+    const { error } = await createAdminClient()
+      .from("visa_applications")
+      .update(changes)
+      .eq("id", id);
+    if (error) return { error: dbError(error.message) };
+    refresh(id);
+    return { ok: "Details saved." };
+  }
+
+  // Admin-only fields.
+  const status = text(formData, "status") as Status;
+  if (!STATUSES.includes(status)) return { error: "Choose a status." };
+  changes.status = status;
+
+  const issuerId = text(formData, "issued_by");
+  if (issuerId) {
+    const issuers = allowedIssuers(await getIssuers(), staff);
+    if (!issuers.some((i) => i.id === issuerId))
+      return { error: "Choose the issuing company." };
+    changes.issued_by = issuerId;
+  }
+
+  for (const key of ["invoice_number", "quotation_number"] as const) {
+    const value = text(formData, key);
+    if (key === "invoice_number" && !value && app.invoice_number) {
+      return {
+        error:
+          "An issued invoice needs a number. Change it, but don't leave it empty.",
+      };
+    }
+    changes[key] = value || null;
+  }
+  for (const key of [
+    "invoice_date",
+    "quotation_date",
+    "submitted_at",
+    "decided_at",
+  ] as const) {
+    const value = text(formData, key);
+    if (value && !isDate(value)) return { error: "Check the dates." };
+    if (key === "invoice_date") {
+      if (value) changes.invoice_date = value;
+    } else {
+      changes[key] = value || null;
+    }
+  }
+
+  const error = await adminUpdate(id, changes, staff.email);
+  if (error) return { error };
+  refresh(id);
+  return { ok: "Details saved." };
+}
+
+/** Correct a payment: amount, method, date, reference, note. Admins only. */
+export async function updatePayment(
+  _prev: ActionResult,
+  formData: FormData,
+): Promise<ActionResult> {
+  const staff = await requireStaff();
+  if (!can.editIssuedInvoice(staff.role))
+    return { error: "Only an admin can change a recorded payment." };
+  const id = text(formData, "id");
+  const paymentId = text(formData, "payment_id");
+  await loadApplication(id, staff);
+
+  const value = amount(formData, "amount");
+  if (!value || value <= 0) return { error: "Enter the amount." };
+  const method = text(formData, "method") as PaymentMethod;
+  if (!METHODS.includes(method)) return { error: "Choose how they paid." };
+  const paidAt = text(formData, "paid_at");
+  if (!isDate(paidAt)) return { error: "Check the date." };
+
+  const { error } = await createAdminClient()
+    .from("payments")
+    .update({
+      amount: value,
+      method,
+      paid_at: paidAt,
+      reference: text(formData, "reference") || null,
+      note: text(formData, "note") || null,
+    })
+    .eq("id", paymentId)
+    .eq("application_id", id);
+  if (error) return { error: dbError(error.message) };
+  refresh(id);
+  return { ok: "Payment updated." };
+}
+
+/** Remove a payment entered by mistake. Admins only. */
+export async function deletePayment(
+  id: string,
+  paymentId: string,
+): Promise<ActionResult> {
+  const staff = await requireStaff();
+  if (!can.editIssuedInvoice(staff.role))
+    return { error: "Only an admin can remove a payment." };
+  await loadApplication(id, staff);
+  const { error } = await createAdminClient()
+    .from("payments")
+    .delete()
+    .eq("id", paymentId)
+    .eq("application_id", id);
+  if (error) return { error: dbError(error.message) };
+  refresh(id);
+  return { ok: "Payment removed." };
 }
