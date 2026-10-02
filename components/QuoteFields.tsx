@@ -183,7 +183,6 @@ export function QuoteFields({
           name="product_name"
           value={productName}
           onChange={(e) => setProductName(e.target.value)}
-          readOnly={!!product}
           required
           className={inputClass}
         />

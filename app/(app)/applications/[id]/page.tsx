@@ -240,7 +240,13 @@ export default async function ApplicationPage({
             title="Payments"
             action={
               <span className="text-sm font-bold">
-                {owed > 0 ? `${money(owed)} owed` : ready ? "Paid in full" : ""}
+                {owed > 0
+                  ? `${money(owed)} owed`
+                  : owed < 0
+                    ? `${money(-owed)} refund due`
+                    : ready
+                      ? "Paid in full"
+                      : ""}
               </span>
             }
           >
@@ -283,13 +289,15 @@ export default async function ApplicationPage({
                 <dd className="font-bold tabular-nums">{money(paid)}</dd>
               </div>
               <div
-                className={`rounded-lg p-3 ${owed > 0 ? "bg-red-50" : "bg-emerald-50"}`}
+                className={`rounded-lg p-3 ${owed > 0 ? "bg-red-50" : owed < 0 ? "bg-amber-50" : "bg-emerald-50"}`}
               >
-                <dt className="text-xs text-navy/50">Balance</dt>
+                <dt className="text-xs text-navy/50">
+                  {owed < 0 ? "Refund due" : "Balance"}
+                </dt>
                 <dd
-                  className={`font-bold tabular-nums ${owed > 0 ? "text-red-700" : "text-emerald-700"}`}
+                  className={`font-bold tabular-nums ${owed > 0 ? "text-red-700" : owed < 0 ? "text-amber-800" : "text-emerald-700"}`}
                 >
-                  {money(owed)}
+                  {money(Math.abs(owed))}
                 </dd>
               </div>
             </dl>

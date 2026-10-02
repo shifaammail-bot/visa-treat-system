@@ -250,8 +250,8 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
               <View style={{ marginTop: 3 }}>
                 <TotalRow label="Paid" value={money(paid)} />
                 <View style={[s.between, { paddingVertical: 3.5 }]}>
-                  <Text style={{ fontSize: 9, fontWeight: 700 }}>Balance due</Text>
-                  <Text style={{ fontSize: 9, fontWeight: 700 }}>{money(owed)}</Text>
+                  <Text style={{ fontSize: 9, fontWeight: 700 }}>{owed < 0 ? "Refund due to client" : "Balance due"}</Text>
+                  <Text style={{ fontSize: 9, fontWeight: 700 }}>{money(Math.abs(owed))}</Text>
                 </View>
               </View>
             )}

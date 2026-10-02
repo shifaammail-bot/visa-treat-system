@@ -18,7 +18,8 @@ export type QuoteValues = {
   cost_price?: number;
 };
 
-const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
+const text = (formData: FormData, key: string) =>
+  String(formData.get(key) ?? "").trim();
 
 /** A money field: blank is 0, junk or negative is null. */
 export function amount(formData: FormData, key: string): number | null {
@@ -34,17 +35,21 @@ export function amount(formData: FormData, key: string): number | null {
  */
 export async function parseQuote(
   formData: FormData,
-  staff: Staff
+  staff: Staff,
 ): Promise<{ error: string } | { values: QuoteValues }> {
   const issuers = allowedIssuers(await getIssuers(), staff);
   const issuer = issuers.find((i) => i.id === text(formData, "issued_by"));
   if (!issuer) return { error: "Choose which company issues this." };
 
   const productId = text(formData, "product_id");
-  const product = productId ? (await getProducts()).find((p) => p.id === productId) : undefined;
-  if (productId && !product) return { error: "That visa product no longer exists." };
+  const product = productId
+    ? (await getProducts()).find((p) => p.id === productId)
+    : undefined;
+  if (productId && !product)
+    return { error: "That visa product no longer exists." };
 
-  const productName = product ? product.name : text(formData, "product_name");
+  // What was typed wins; picking a product only pre-fills the description.
+  const productName = text(formData, "product_name") || product?.name || "";
   if (!productName) return { error: "Describe the visa (or pick a product)." };
 
   const quantity = Math.floor(Number(text(formData, "quantity")));
@@ -59,7 +64,10 @@ export async function parseQuote(
   }
   if (sellingPrice <= 0) return { error: "Enter the selling price per guest." };
   if (sellingPrice + 0.001 < serviceCharge) {
-    return { error: "The service fee is part of the selling price, so it can't be more than the price." };
+    return {
+      error:
+        "The service fee is part of the selling price, so it can't be more than the price.",
+    };
   }
 
   const values: QuoteValues = {
@@ -78,7 +86,8 @@ export async function parseQuote(
 
   if (can.seeCosts(staff.role)) {
     const cost = amount(formData, "cost_price");
-    if (cost === null) return { error: "Cost must be a number of zero or more." };
+    if (cost === null)
+      return { error: "Cost must be a number of zero or more." };
     values.cost_price = cost;
   }
 
