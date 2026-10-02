@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, FileText } from "lucide-react";
 import { requireStaff } from "@/lib/context";
 import { loadDocument, parseKind } from "@/lib/documents";
 import { Breadcrumbs } from "@/components/PageHeader";
 import { buttonClass, secondaryButtonClass } from "@/components/ui";
+import { PdfViewer } from "./PdfViewer";
 
 export const dynamic = "force-dynamic";
 
@@ -36,12 +37,23 @@ export default async function DocumentPage({
               kind === "invoice"
                 ? { label: "Invoices", href: "/invoices" }
                 : { label: "Quotations", href: "/quotations" },
-              { label: doc.app.ref, href: `/applications/${params.id}` },
             ]}
             current={doc.number}
           />
           <div className="flex flex-wrap gap-2">
-            <a href={pdf} target="_blank" rel="noopener" className={secondaryButtonClass}>
+            <Link
+              href={`/applications/${params.id}`}
+              className={secondaryButtonClass}
+            >
+              <FileText className="h-4 w-4" />
+              Open sale
+            </Link>
+            <a
+              href={pdf}
+              target="_blank"
+              rel="noopener"
+              className={secondaryButtonClass}
+            >
               <ExternalLink className="h-4 w-4" />
               Open / print
             </a>
@@ -53,8 +65,12 @@ export default async function DocumentPage({
         </div>
         {searchParams.new && (
           <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-            {kind === "invoice" ? "Invoice" : "Quotation"} <strong>{doc.number}</strong> issued.{" "}
-            <Link href={`/applications/${params.id}`} className="font-bold underline">
+            {kind === "invoice" ? "Invoice" : "Quotation"}{" "}
+            <strong>{doc.number}</strong> issued.{" "}
+            <Link
+              href={`/applications/${params.id}`}
+              className="font-bold underline"
+            >
               Open the sale
             </Link>{" "}
             to record payments or update its status.
@@ -62,12 +78,7 @@ export default async function DocumentPage({
         )}
       </div>
 
-      <iframe
-        src={`${pdf}#view=FitH`}
-        title={`${kind === "invoice" ? "Invoice" : "Quotation"} ${doc.number}`}
-        className="w-full flex-1 border-0"
-        style={{ minHeight: "80vh" }}
-      />
+      <PdfViewer src={pdf} />
     </div>
   );
 }
