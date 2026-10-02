@@ -1,12 +1,21 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-type Issuer = { id: string | number; name?: string | null } & Record<string, unknown>;
+type Issuer = {
+  id: string;
+  trade_name: string;
+  legal_name: string | null;
+  accent_colour: string | null;
+};
 
 export default async function Home() {
-  const supabase = createClient();
-  const { data, error } = await supabase.from("issuers").select("*");
+  // Internal staff tool: read with the service-role client on the server.
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("issuers")
+    .select("id, trade_name, legal_name, accent_colour")
+    .order("sort_order");
   const issuers = (data ?? []) as Issuer[];
 
   return (
@@ -21,8 +30,7 @@ export default async function Home() {
         </div>
       ) : issuers.length === 0 ? (
         <div className="mt-8 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          Connected, but no rows were returned. If the table has data, check the RLS
-          policies on <code>issuers</code> for the anon role.
+          Connected, but the <code>issuers</code> table returned no rows.
         </div>
       ) : (
         <>
@@ -31,8 +39,17 @@ export default async function Home() {
           </div>
           <ul className="mt-6 divide-y divide-black/10 rounded-lg border border-black/10 dark:divide-white/10 dark:border-white/10">
             {issuers.map((issuer) => (
-              <li key={String(issuer.id)} className="px-4 py-3">
-                {issuer.name ?? JSON.stringify(issuer)}
+              <li key={issuer.id} className="flex items-center gap-3 px-4 py-3">
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full"
+                  style={{ backgroundColor: issuer.accent_colour ?? "currentColor" }}
+                />
+                <div>
+                  <p className="font-medium">{issuer.trade_name}</p>
+                  {issuer.legal_name && (
+                    <p className="text-sm opacity-70">{issuer.legal_name}</p>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
