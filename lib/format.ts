@@ -1,4 +1,4 @@
-import type { PaymentMethod, Source, Status, VisaType } from "@/lib/types";
+import type { FollowUpMethod, LeadStatus, PaymentMethod, Source, Status, VisaType } from "@/lib/types";
 
 export const STATUS_LABEL: Record<Status, string> = {
   enquiry: "Enquiry",
@@ -9,23 +9,54 @@ export const STATUS_LABEL: Record<Status, string> = {
   cancelled: "Cancelled",
 };
 
-/** Campaign channels a lead can come from. */
-export const LEAD_SOURCE_LABEL: Record<Exclude<Source, "direct">, string> = {
+/** Where a client found us. Asked for every lead and every direct sale. */
+export const CHANNEL_LABEL: Record<Exclude<Source, "direct">, string> = {
   google_ads: "Google Ads",
-  organic: "Organic / SEO",
+  organic: "Google search (SEO)",
+  social: "Social media",
   whatsapp: "WhatsApp",
-  social: "Social media ads",
-  agent: "Agent",
+  referral: "Referral",
+  walk_in: "Walk-in",
+  repeat: "Repeat client",
+  agent: "Agent / partner",
   other: "Other",
 };
 
 export const SOURCE_LABEL: Record<Source, string> = {
-  ...LEAD_SOURCE_LABEL,
-  direct: "Direct sale",
+  ...CHANNEL_LABEL,
+  direct: "Not recorded",
 };
 
-/** Campaign leads only — direct sales are not leads and don't count toward conversion. */
-export const isLead = (row: { source: Source | null }) => row.source !== "direct";
+export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
+  open: "Following up",
+  won: "Won",
+  lost: "Lost",
+};
+
+/** Why a lead was closed as lost. */
+export const LOST_REASONS = [
+  "Went cold / no reply",
+  "Price too high",
+  "Chose another agency",
+  "Travel plans cancelled",
+  "Not eligible",
+  "Other",
+] as const;
+
+export const FOLLOW_UP_METHOD_LABEL: Record<FollowUpMethod, string> = {
+  call: "Call",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  visit: "Visit",
+  other: "Other",
+};
+
+/** A YYYY-MM-DD date some days from today, in Dubai. */
+export function dubaiDatePlus(days: number): string {
+  const d = new Date(`${dubaiDate()}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 export const VISA_TYPE_LABEL: Record<VisaType, string> = {
   tourist: "Tourist",

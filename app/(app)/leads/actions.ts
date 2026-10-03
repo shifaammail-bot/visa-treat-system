@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCountries } from "@/lib/catalogue";
 import { canSeeClient, getStaffList, requireStaff } from "@/lib/context";
-import { LEAD_SOURCE_LABEL, VISA_TYPE_LABEL } from "@/lib/format";
+import { CHANNEL_LABEL, VISA_TYPE_LABEL, dubaiDate } from "@/lib/format";
+import { allowedIssuers, getIssuers } from "@/lib/issuers";
 import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Source, VisaType } from "@/lib/types";
@@ -27,7 +28,18 @@ export async function createLead(_prev: LeadResult, formData: FormData): Promise
   const country = (await getCountries()).find((c) => c.code === countryCode);
   if (!country) return { error: "Choose a destination." };
   if (!(visaType in VISA_TYPE_LABEL)) return { error: "Choose a visa type." };
-  if (!(source in LEAD_SOURCE_LABEL)) return { error: "Choose where the lead came from." };
+  if (!(source in CHANNEL_LABEL)) return { error: "Choose the channel the lead came from." };
+
+  const brand = allowedIssuers(await getIssuers(), staff).find((i) => i.id === text(formData, "issued_by"));
+  if (!brand) return { error: "Choose which brand the enquiry came through." };
+
+  const nextFollowUp = text(formData, "next_follow_up");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nextFollowUp)) return { error: "Set the next follow-up date." };
+  if (nextFollowUp < dubaiDate()) return { error: "The next follow-up can't be in the past." };
+
+  const referral = text(formData, "referral");
+  const discussed = text(formData, "notes");
+  const notes = [referral ? `Referred by / campaign: ${referral}` : "", discussed].filter(Boolean).join("\n");
 
   // Who handles it. Consultants always get their own leads.
   let consultant = staff.email;
@@ -86,8 +98,11 @@ export async function createLead(_prev: LeadResult, formData: FormData): Promise
       product_name: `${country.name} ${VISA_TYPE_LABEL[visaType].toLowerCase()} visa`,
       visa_type: visaType,
       source,
-      notes: text(formData, "notes") || null,
+      issued_by: brand.id,
+      notes: notes || null,
       status: "enquiry",
+      lead_status: "open",
+      next_follow_up: nextFollowUp,
     })
     .select("id")
     .single();
@@ -98,5 +113,6 @@ export async function createLead(_prev: LeadResult, formData: FormData): Promise
   }
 
   revalidatePath("/leads");
+  revalidatePath("/");
   redirect(`/applications/${app.id}`);
 }

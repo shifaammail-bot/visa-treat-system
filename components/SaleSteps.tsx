@@ -1,49 +1,51 @@
 import { Check } from "lucide-react";
 
 type Props = {
-  direct: boolean;
-  quoted: boolean;
+  /** Where the client found us, e.g. "Social media". */
+  channel: string;
+  followUps: number;
   invoiced: boolean;
+  /** Paid in full. */
   paid: boolean;
-  submitted: boolean;
-  decision: "approved" | "rejected" | null;
-  cancelled: boolean;
+  /** Something paid, not all. */
+  advance: boolean;
+  lost: boolean;
 };
 
-/** Where a sale is: lead → quote → invoice → paid → submitted → decision. */
-export function SaleSteps({ direct, quoted, invoiced, paid, submitted, decision, cancelled }: Props) {
+/** Where a client is: lead → follow-ups → invoice → paid (or lost). */
+export function SaleSteps({ channel, followUps, invoiced, paid, advance, lost }: Props) {
   const steps = [
-    { label: direct ? "Direct sale" : "Lead", done: true },
-    { label: "Quote", done: quoted },
+    { label: `Lead · ${channel}`, done: true },
+    {
+      label: followUps ? `${followUps} follow-up${followUps === 1 ? "" : "s"}` : "Follow-up",
+      done: followUps > 0 || invoiced,
+    },
     { label: "Invoice", done: invoiced },
-    { label: "Paid", done: paid },
-    { label: "Submitted", done: submitted },
-    { label: decision === "rejected" ? "Rejected" : "Approved", done: decision !== null },
+    { label: advance && !paid ? "Advance paid" : "Paid", done: paid, partial: advance && !paid },
   ];
   const current = steps.findIndex((s) => !s.done);
 
   return (
     <div>
-      {cancelled && <p className="mb-2 text-xs font-bold uppercase tracking-wide text-red-600">Cancelled</p>}
-      <ol className={`flex flex-wrap items-center gap-y-2 ${cancelled ? "opacity-50" : ""}`}>
+      {lost && <p className="mb-2 text-xs font-bold uppercase tracking-wide text-red-600">Lost</p>}
+      <ol className={`flex flex-wrap items-center gap-y-2 ${lost ? "opacity-50" : ""}`}>
         {steps.map((step, i) => {
-          const isCurrent = i === current && !cancelled;
-          const rejected = step.label === "Rejected";
+          const isCurrent = i === current && !lost;
           return (
-            <li key={step.label} className="flex items-center">
+            <li key={i} className="flex items-center">
               <span
                 className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${
                   step.done
-                    ? rejected
-                      ? "bg-red-50 text-red-700"
-                      : "bg-mint-50 text-navy"
-                    : isCurrent
-                      ? "bg-white text-navy ring-2 ring-mint"
-                      : "text-navy/40"
+                    ? "bg-mint-50 text-navy"
+                    : "partial" in step && step.partial
+                      ? "bg-amber-50 text-amber-800 ring-2 ring-amber-300"
+                      : isCurrent
+                        ? "bg-white text-navy ring-2 ring-mint"
+                        : "text-navy/40"
                 }`}
               >
                 {step.done ? (
-                  <Check className={`h-3.5 w-3.5 ${rejected ? "text-red-600" : "text-mint-600"}`} />
+                  <Check className="h-3.5 w-3.5 text-mint-600" />
                 ) : (
                   <span
                     className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${

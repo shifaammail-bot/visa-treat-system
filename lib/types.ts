@@ -1,5 +1,18 @@
 export type Status = "enquiry" | "quoted" | "submitted" | "approved" | "rejected" | "cancelled";
-export type Source = "google_ads" | "organic" | "whatsapp" | "social" | "agent" | "other" | "direct";
+export type Source =
+  | "google_ads"
+  | "organic"
+  | "social"
+  | "whatsapp"
+  | "referral"
+  | "walk_in"
+  | "repeat"
+  | "agent"
+  | "other"
+  /** Older direct sales recorded before channels were required. */
+  | "direct";
+export type LeadStatus = "open" | "won" | "lost";
+export type FollowUpMethod = "call" | "whatsapp" | "email" | "visit" | "other";
 export type VisaType = "tourist" | "visit" | "transit" | "business" | "student" | "work" | "other";
 export type PaymentMethod = "cash" | "card" | "bank transfer" | "link" | "cheque";
 
@@ -82,6 +95,21 @@ export type Application = {
   /** Set when an admin corrects an issued invoice. */
   edited_at?: string | null;
   edited_by?: string | null;
+  /** The lead: open while following up, won once invoiced, or lost. */
+  lead_status: LeadStatus;
+  next_follow_up: string | null;
+  lost_reason: string | null;
+  closed_at: string | null;
+};
+
+export type FollowUp = {
+  id: string;
+  application_id: string;
+  created_at: string;
+  created_by: string | null;
+  method: FollowUpMethod;
+  note: string;
+  next_follow_up: string | null;
 };
 
 /** An application as list pages fetch it: with its client, destination and payments. */
@@ -89,7 +117,8 @@ export type ApplicationRow = Application & {
   client: Pick<Client, "id" | "full_name" | "nationality" | "phone" | "email"> | null;
   country: Pick<Country, "name"> | null;
   payments: Pick<Payment, "amount">[];
+  followups: Pick<FollowUp, "created_at">[];
 };
 
 export const APPLICATION_ROW_SELECT =
-  "*, client:clients(id, full_name, nationality, phone, email), country:countries(name), payments(amount)";
+  "*, client:clients(id, full_name, nationality, phone, email), country:countries(name), payments(amount), followups:lead_followups(created_at)";

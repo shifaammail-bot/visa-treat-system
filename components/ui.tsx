@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { STATUS_LABEL } from "@/lib/format";
-import type { Status } from "@/lib/types";
+import { LEAD_STATUS_LABEL, STATUS_LABEL } from "@/lib/format";
+import type { LeadStatus, Status } from "@/lib/types";
 
 export const inputClass =
   "w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm focus:border-mint focus:outline-none focus:ring-2 focus:ring-mint/30 disabled:bg-navy/5 disabled:text-navy/60";
@@ -50,6 +50,33 @@ export function StatusBadge({ status }: { status: Status }) {
     >
       {STATUS_LABEL[status]}
     </span>
+  );
+}
+
+const LEAD_STYLE: Record<LeadStatus, string> = {
+  open: "bg-sky-50 text-sky-700 ring-sky-200",
+  won: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  lost: "bg-navy/5 text-navy/50 ring-navy/10",
+};
+
+export function LeadBadge({ status }: { status: LeadStatus }) {
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${LEAD_STYLE[status]}`}>
+      {LEAD_STATUS_LABEL[status]}
+    </span>
+  );
+}
+
+/** Paid in full, advance paid, or unpaid — from the total and what's been paid. */
+export function PaymentBadge({ total, paid }: { total: number; paid: number }) {
+  const [label, style] =
+    paid <= 0
+      ? ["Unpaid", "bg-red-50 text-red-700 ring-red-200"]
+      : paid + 0.005 < total
+        ? ["Advance paid", "bg-amber-50 text-amber-800 ring-amber-200"]
+        : ["Paid", "bg-emerald-50 text-emerald-700 ring-emerald-200"];
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ring-1 ring-inset ${style}`}>{label}</span>
   );
 }
 

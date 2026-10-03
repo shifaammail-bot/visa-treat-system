@@ -71,13 +71,12 @@ describe("summariseMonth", () => {
     expect(profitOf(rows[0])).toBe(400);
   });
 
-  it("counts direct sales as sales but not as leads", () => {
-    const rows = [sale({ source: "direct" }), sale({ source: "social" }), sale({ source: "organic", invoice_number: null })];
+  it("counts every enquiry as a lead, including on-the-spot sales", () => {
+    const rows = [sale({ source: "walk_in" }), sale({ source: "social" }), sale({ source: "organic", invoice_number: null })];
     const m = summariseMonth(rows, "2026-10");
     expect(m.sales).toHaveLength(2);
-    expect(m.leads).toBe(2);
-    expect(m.fromLeads).toBe(1);
-    expect(summariseWeeks(rows, "2026-10")[1]).toMatchObject({ leads: 2, sold: 2 });
+    expect(m.leads).toBe(3);
+    expect(summariseWeeks(rows, "2026-10")[1]).toMatchObject({ leads: 3, sold: 2 });
   });
 
   it("uses Dubai time for lead dates", () => {

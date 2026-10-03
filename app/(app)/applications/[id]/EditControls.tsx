@@ -4,12 +4,19 @@ import { useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { Pencil, Trash2 } from "lucide-react";
 import {
+  CHANNEL_LABEL,
+  LEAD_STATUS_LABEL,
   METHOD_LABEL,
   SOURCE_LABEL,
-  STATUS_LABEL,
   VISA_TYPE_LABEL,
 } from "@/lib/format";
-import type { Country, Payment, Source, Status, VisaType } from "@/lib/types";
+import type {
+  Country,
+  LeadStatus,
+  Payment,
+  Source,
+  VisaType,
+} from "@/lib/types";
 import { money } from "@/lib/vat";
 import {
   Field,
@@ -52,20 +59,18 @@ type DetailsProps = {
     source: Source | null;
     consultant: string;
     notes: string | null;
-    status: Status;
+    lead_status: LeadStatus;
     issued_by: string | null;
     invoice_number: string | null;
     invoice_date: string;
     quotation_number: string | null;
     quotation_date: string | null;
-    submitted_at: string | null;
-    decided_at: string | null;
   };
 };
 
 /**
- * Destination, visa type, source, consultant and notes for anyone who sells;
- * admins also get company, document numbers and dates, and any status.
+ * Destination, visa type, channel, consultant and notes for anyone who sells;
+ * admins also get lead status, company, and document numbers and dates.
  */
 export function DetailsForm({
   id,
@@ -108,13 +113,16 @@ export function DetailsForm({
             ))}
           </select>
         </Field>
-        <Field label="Source">
+        <Field label="Channel">
           <select
             name="source"
-            defaultValue={v.source ?? "direct"}
+            defaultValue={v.source ?? "other"}
             className={inputClass}
           >
-            {Object.entries(SOURCE_LABEL).map(([value, label]) => (
+            {v.source === "direct" && (
+              <option value="direct">{SOURCE_LABEL.direct}</option>
+            )}
+            {Object.entries(CHANNEL_LABEL).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -147,13 +155,13 @@ export function DetailsForm({
             Admin corrections
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Status">
+            <Field label="Lead status">
               <select
-                name="status"
-                defaultValue={v.status}
+                name="lead_status"
+                defaultValue={v.lead_status}
                 className={inputClass}
               >
-                {Object.entries(STATUS_LABEL).map(([value, label]) => (
+                {Object.entries(LEAD_STATUS_LABEL).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
@@ -208,22 +216,6 @@ export function DetailsForm({
                 name="quotation_date"
                 type="date"
                 defaultValue={v.quotation_date ?? ""}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Submitted on">
-              <input
-                name="submitted_at"
-                type="date"
-                defaultValue={v.submitted_at ?? ""}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Decided on">
-              <input
-                name="decided_at"
-                type="date"
-                defaultValue={v.decided_at ?? ""}
                 className={inputClass}
               />
             </Field>

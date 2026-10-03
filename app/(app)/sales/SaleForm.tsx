@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { FileCheck2, FileText } from "lucide-react";
-import { METHOD_LABEL, VISA_TYPE_LABEL } from "@/lib/format";
+import { CHANNEL_LABEL, METHOD_LABEL, VISA_TYPE_LABEL } from "@/lib/format";
 import type { Country, VisaProduct } from "@/lib/types";
 import { QuoteFields, type IssuerOption } from "@/components/QuoteFields";
 import { Card, Field, Notice, buttonClass, inputClass, secondaryButtonClass } from "@/components/ui";
@@ -112,6 +112,18 @@ export function SaleForm(props: Props) {
               ))}
             </select>
           </Field>
+          <Field label="How they found us" hint="Channel — counted in the reports.">
+            <select name="source" required defaultValue="" className={inputClass}>
+              <option value="" disabled>
+                Choose…
+              </option>
+              {Object.entries(CHANNEL_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Field>
           {consultants && (
             <Field label="Consultant">
               <select name="consultant" defaultValue={me} className={inputClass}>
@@ -150,7 +162,7 @@ export function SaleForm(props: Props) {
       </Card>
 
       {kind === "invoice" && (
-        <Card title="Payment received now">
+        <Card title="Payment received now (full or advance)">
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Amount (AED)" hint="Leave blank if nothing was paid yet.">
               <input name="paid_amount" type="number" min="0" step="0.01" className={inputClass} />

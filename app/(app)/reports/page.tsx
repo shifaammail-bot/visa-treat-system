@@ -114,11 +114,9 @@ export default async function ReportsPage({
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Stat label="Leads received" value={String(m.leads)} sub={monthLabel(month)} />
                   <Stat
-                    label="Applications sold"
+                    label="Sales"
                     value={String(m.sales.length)}
-                    sub={`${m.fromLeads} from leads · ${m.sales.length - m.fromLeads} direct${
-                      m.leads ? ` · ${pct(m.fromLeads / m.leads)} lead conversion` : ""
-                    }`}
+                    sub={m.leads ? `${pct(m.sales.length / m.leads)} of leads converted` : "No leads this month"}
                   />
                   <Stat label="Profit" value={money(m.profit)} sub={`${pct(m.profit / MONTHLY_PROFIT_TARGET)} of target`} />
                 </div>

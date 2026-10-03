@@ -248,9 +248,9 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
             <TotalRow label={taxInvoice ? "Total incl. VAT (AED)" : "Total (AED)"} value={money(total)} grand />
             {kind === "invoice" && (
               <View style={{ marginTop: 3 }}>
-                <TotalRow label="Paid" value={money(paid)} />
+                <TotalRow label={paid > 0 && owed > 0 ? "Advance paid" : "Paid"} value={money(paid)} />
                 <View style={[s.between, { paddingVertical: 3.5 }]}>
-                  <Text style={{ fontSize: 9, fontWeight: 700 }}>{owed < 0 ? "Refund due to client" : "Balance due"}</Text>
+                  <Text style={{ fontSize: 9, fontWeight: 700 }}>{owed < 0 ? "Refund due to client" : owed > 0 ? (paid > 0 ? "Balance pending" : "Amount due") : "Paid in full"}</Text>
                   <Text style={{ fontSize: 9, fontWeight: 700 }}>{money(Math.abs(owed))}</Text>
                 </View>
               </View>

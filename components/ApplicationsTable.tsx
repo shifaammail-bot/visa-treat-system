@@ -1,9 +1,9 @@
 import { formatDate, num } from "@/lib/format";
 import type { Issuer } from "@/lib/issuers";
-import { balanceOf } from "@/lib/queries";
+import { balanceOf, paidOf } from "@/lib/queries";
 import type { ApplicationRow } from "@/lib/types";
 import { money } from "@/lib/vat";
-import { Empty, StatusBadge, TableLink, TableWrap, tdClass, thClass } from "@/components/ui";
+import { Empty, LeadBadge, PaymentBadge, TableLink, TableWrap, tdClass, thClass } from "@/components/ui";
 
 type Column = "client" | "trip" | "brand" | "consultant" | "status" | "total" | "balance" | "document";
 
@@ -70,7 +70,11 @@ export function ApplicationsTable({ rows, issuers, staffName, columns, document,
               {show("consultant") && <td className={tdClass}>{staffName(row.consultant)}</td>}
               {show("status") && (
                 <td className={tdClass}>
-                  <StatusBadge status={row.status} />
+                  {row.invoice_number ? (
+                    <PaymentBadge total={num(row.grand_total)} paid={paidOf(row)} />
+                  ) : (
+                    <LeadBadge status={row.lead_status} />
+                  )}
                 </td>
               )}
               {show("total") && (

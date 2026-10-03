@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { dbError } from "@/lib/db";
 import {
+  FOLLOW_UP_METHOD_LABEL,
+  LEAD_STATUS_LABEL,
+  LOST_REASONS,
   SOURCE_LABEL,
-  STATUS_LABEL,
   VISA_TYPE_LABEL,
   dubaiDate,
 } from "@/lib/format";
@@ -13,9 +15,8 @@ import { getStaffList, loadApplication, requireStaff } from "@/lib/context";
 import { allowedIssuers, getIssuers } from "@/lib/issuers";
 import { can } from "@/lib/permissions";
 import { amount, parseQuote } from "@/lib/quote-input";
-import { NEXT_STATUS } from "@/lib/status";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { PaymentMethod, Source, Status, VisaType } from "@/lib/types";
+import type { FollowUpMethod, LeadStatus, PaymentMethod, Source, VisaType } from "@/lib/types";
 
 export type ActionResult = { error?: string; ok?: string } | null;
 
@@ -142,6 +143,14 @@ async function assign(
   });
   if (error) return { error: dbError(error.message) };
 
+  // An invoice turns the lead into a sale.
+  if (series === "invoice") {
+    await createAdminClient()
+      .from("visa_applications")
+      .update({ lead_status: "won", closed_at: dubaiDate(), next_follow_up: null })
+      .eq("id", id);
+  }
+
   refresh(id);
   return { ok: series === "invoice" ? "Invoice issued." : "Quotation issued." };
 }
@@ -152,33 +161,6 @@ export async function issueQuotation(id: string) {
 
 export async function convertToInvoice(id: string) {
   return assign(id, "invoice");
-}
-
-export async function setStatus(
-  id: string,
-  status: Status,
-): Promise<ActionResult> {
-  const staff = await requireStaff();
-  const app = await loadApplication(id, staff);
-  if (!can.editSale(staff.role))
-    return { error: "Your role can't change status." };
-  if (!NEXT_STATUS[app.status].includes(status)) {
-    return { error: `Can't move from ${app.status} to ${status}.` };
-  }
-
-  const today = dubaiDate();
-  const update: Record<string, unknown> = { status };
-  if (status === "submitted") update.submitted_at = today;
-  if (status === "approved" || status === "rejected") update.decided_at = today;
-
-  const { error } = await createAdminClient()
-    .from("visa_applications")
-    .update(update)
-    .eq("id", id);
-  if (error) return { error: dbError(error.message) };
-
-  refresh(id);
-  return { ok: "Status updated." };
 }
 
 const METHODS: PaymentMethod[] = [
@@ -229,7 +211,6 @@ export async function recordPayment(
   };
 }
 
-const STATUSES = Object.keys(STATUS_LABEL) as Status[];
 const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 /**
@@ -282,9 +263,8 @@ export async function saveDetails(
   }
 
   // Admin-only fields.
-  const status = text(formData, "status") as Status;
-  if (!STATUSES.includes(status)) return { error: "Choose a status." };
-  changes.status = status;
+  const leadStatus = text(formData, "lead_status") as LeadStatus;
+  if (!(leadStatus in LEAD_STATUS_LABEL)) return { error: "Choose the lead status." };
 
   const issuerId = text(formData, "issued_by");
   if (issuerId) {
@@ -304,12 +284,7 @@ export async function saveDetails(
     }
     changes[key] = value || null;
   }
-  for (const key of [
-    "invoice_date",
-    "quotation_date",
-    "submitted_at",
-    "decided_at",
-  ] as const) {
+  for (const key of ["invoice_date", "quotation_date"] as const) {
     const value = text(formData, key);
     if (value && !isDate(value)) return { error: "Check the dates." };
     if (key === "invoice_date") {
@@ -321,6 +296,19 @@ export async function saveDetails(
 
   const error = await adminUpdate(id, changes, staff.email);
   if (error) return { error };
+
+  if (leadStatus !== app.lead_status) {
+    const { error: leadError } = await createAdminClient()
+      .from("visa_applications")
+      .update({
+        lead_status: leadStatus,
+        closed_at: leadStatus === "open" ? null : app.closed_at ?? dubaiDate(),
+        lost_reason: leadStatus === "lost" ? app.lost_reason ?? "Other" : null,
+        next_follow_up: leadStatus === "open" ? app.next_follow_up ?? dubaiDate() : null,
+      })
+      .eq("id", id);
+    if (leadError) return { error: dbError(leadError.message) };
+  }
   refresh(id);
   return { ok: "Details saved." };
 }
@@ -377,4 +365,69 @@ export async function deletePayment(
   if (error) return { error: dbError(error.message) };
   refresh(id);
   return { ok: "Payment removed." };
+}
+
+/**
+ * Log a contact with a lead: what was said and when to follow up next — or
+ * close it as lost, with the reason.
+ */
+export async function logFollowUp(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const staff = await requireStaff();
+  const id = text(formData, "id");
+  const app = await loadApplication(id, staff);
+  if (!can.editSale(staff.role)) return { error: "Your role can't update leads." };
+  if (app.lead_status !== "open") return { error: "This lead is closed. Reopen it first." };
+
+  const note = text(formData, "note");
+  if (!note) return { error: "Write what was discussed." };
+  const method = text(formData, "method") as FollowUpMethod;
+  if (!(method in FOLLOW_UP_METHOD_LABEL)) return { error: "Choose how you contacted them." };
+
+  const outcome = text(formData, "outcome");
+  const today = dubaiDate();
+  let next: string | null = null;
+  const update: Record<string, unknown> = {};
+
+  if (outcome === "lost") {
+    const reason = text(formData, "lost_reason");
+    if (!(LOST_REASONS as readonly string[]).includes(reason)) return { error: "Choose why the lead was lost." };
+    Object.assign(update, { lead_status: "lost", lost_reason: reason, closed_at: today, next_follow_up: null });
+  } else {
+    next = text(formData, "next_follow_up");
+    if (!isDate(next)) return { error: "Set the next follow-up date." };
+    if (next < today) return { error: "The next follow-up can't be in the past." };
+    update.next_follow_up = next;
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("lead_followups").insert({
+    application_id: id,
+    created_by: staff.email,
+    method,
+    note,
+    next_follow_up: next,
+  });
+  if (error) return { error: dbError(error.message) };
+
+  const { error: leadError } = await admin.from("visa_applications").update(update).eq("id", id);
+  if (leadError) return { error: dbError(leadError.message) };
+
+  refresh(id);
+  return { ok: outcome === "lost" ? "Lead closed as lost." : "Follow-up logged." };
+}
+
+/** Reopen a lost lead (they came back). */
+export async function reopenLead(id: string): Promise<ActionResult> {
+  const staff = await requireStaff();
+  const app = await loadApplication(id, staff);
+  if (!can.editSale(staff.role)) return { error: "Your role can't update leads." };
+  if (app.lead_status !== "lost") return { error: "Only a lost lead can be reopened." };
+
+  const { error } = await createAdminClient()
+    .from("visa_applications")
+    .update({ lead_status: "open", closed_at: null, lost_reason: null, next_follow_up: dubaiDate() })
+    .eq("id", id);
+  if (error) return { error: dbError(error.message) };
+  refresh(id);
+  return { ok: "Lead reopened. Follow up today." };
 }

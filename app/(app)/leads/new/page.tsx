@@ -1,13 +1,14 @@
 import { notFound } from "next/navigation";
 import { getCountries } from "@/lib/catalogue";
 import { canSeeClient, getContext, getStaffList } from "@/lib/context";
+import { dubaiDate, dubaiDatePlus } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/PageHeader";
 import { LeadForm } from "../LeadForm";
 
 export default async function NewLeadPage({ searchParams }: { searchParams: { client?: string } }) {
-  const { staff } = await getContext();
+  const { staff, issuers } = await getContext();
   if (!can.createLead(staff.role)) notFound();
 
   const [countries, staffList] = await Promise.all([getCountries(), getStaffList()]);
@@ -40,7 +41,7 @@ export default async function NewLeadPage({ searchParams }: { searchParams: { cl
               ]
             : [{ label: "Leads", href: "/leads" }]
         }
-        description="Saved as an enquiry. Add the price on the next screen to quote it."
+        description="Every enquiry goes here, from any channel or brand. Follow up from the lead's page; issue an invoice when they go ahead."
       />
       <div className="max-w-3xl px-4 py-8 md:px-8">
         <LeadForm
@@ -48,6 +49,9 @@ export default async function NewLeadPage({ searchParams }: { searchParams: { cl
           consultants={consultants}
           me={staff.email}
           existingClient={existingClient}
+          brands={issuers.map((i) => ({ id: i.id, trade_name: i.trade_name }))}
+          today={dubaiDate()}
+          tomorrow={dubaiDatePlus(1)}
         />
       </div>
     </>

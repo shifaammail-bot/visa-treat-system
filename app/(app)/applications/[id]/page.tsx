@@ -10,20 +10,21 @@ import {
   SOURCE_LABEL,
   VISA_TYPE_LABEL,
   dubaiDate,
+  dubaiDatePlus,
   formatDate,
   num,
 } from "@/lib/format";
 import { getIssuers } from "@/lib/issuers";
 import { can } from "@/lib/permissions";
-import { NEXT_STATUS } from "@/lib/status";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Client, Payment } from "@/lib/types";
+import type { Client, FollowUp, Payment } from "@/lib/types";
 import { balance, margin, money } from "@/lib/vat";
 import { BrandLogo } from "@/components/BrandLogo";
 import { PageHeader } from "@/components/PageHeader";
 import { SaleSteps } from "@/components/SaleSteps";
-import { Card, Notice, StatusBadge, TableLink } from "@/components/ui";
-import { DocumentButtons, PaymentForm, StatusButtons } from "./Controls";
+import { Card, LeadBadge, Notice, TableLink } from "@/components/ui";
+import { DocumentButtons, PaymentForm } from "./Controls";
+import { FollowUps } from "./FollowUps";
 import { DetailsForm, PaymentEditor } from "./EditControls";
 import { QuoteForm } from "./QuoteForm";
 
@@ -74,7 +75,15 @@ export default async function ApplicationPage({
     getStaffList(),
     getIssuers(),
   ]);
-  const countries = await getCountries();
+  const [countries, { data: followUpRows }] = await Promise.all([
+    getCountries(),
+    admin
+      .from("lead_followups")
+      .select("*")
+      .eq("application_id", app.id)
+      .order("created_at"),
+  ]);
+  const followUps = (followUpRows ?? []) as FollowUp[];
 
   const payments = (paymentRows ?? []) as Payment[];
   const issuer = allIssuers.find((i) => i.id === app.issued_by) ?? null;
@@ -96,17 +105,13 @@ export default async function ApplicationPage({
   // Where this sale lives in the nav, for the breadcrumb and Back.
   const parent = app.invoice_number
     ? { label: "Invoices", href: "/invoices" }
-    : app.quotation_number
-      ? { label: "Quotations", href: "/quotations" }
-      : app.status === "enquiry"
-        ? { label: "Leads", href: "/leads" }
-        : { label: "Applications", href: "/applications" };
+    : { label: "Leads", href: "/leads" };
 
   return (
     <>
       <PageHeader
         title={app.ref}
-        meta={<StatusBadge status={app.status} />}
+        meta={<LeadBadge status={app.lead_status} />}
         description={`${client?.full_name ?? "Unknown client"} · ${app.product_name}`}
         crumbs={[parent]}
       >
@@ -121,32 +126,42 @@ export default async function ApplicationPage({
 
       <div className="border-b border-navy/10 bg-[#FAFAFB] px-4 py-4 md:px-8">
         <SaleSteps
-          direct={app.source === "direct"}
-          quoted={ready}
+          channel={app.source ? SOURCE_LABEL[app.source] : "Not recorded"}
+          followUps={followUps.length}
           invoiced={!!app.invoice_number}
           paid={!!app.invoice_number && owed <= 0}
-          submitted={
-            !!app.submitted_at ||
-            ["submitted", "approved", "rejected"].includes(app.status)
-          }
-          decision={
-            app.status === "approved" || app.status === "rejected"
-              ? app.status
-              : null
-          }
-          cancelled={app.status === "cancelled"}
+          advance={paid > 0 && owed > 0}
+          lost={app.lead_status === "lost"}
         />
       </div>
 
       <div className="grid gap-6 px-4 py-6 md:px-8 xl:grid-cols-[1fr_360px]">
         <div className="min-w-0 space-y-6">
+          {(!app.invoice_number || followUps.length > 0) && (
+            <Card title="Follow-ups">
+              <FollowUps
+                id={app.id}
+                leadStatus={app.lead_status}
+                nextFollowUp={app.next_follow_up}
+                lostReason={app.lost_reason}
+                closedAt={app.closed_at}
+                createdAt={app.created_at}
+                firstNote={app.notes}
+                followUps={followUps.map((f) => ({ ...f, by: nameOf(staffList, f.created_by) }))}
+                canEdit={can.editSale(staff.role)}
+                today={dubaiDate()}
+                inTwoDays={dubaiDatePlus(2)}
+              />
+            </Card>
+          )}
+
           <Card
             title={
               app.invoice_number
                 ? adminEditingInvoice
                   ? `Invoice ${app.invoice_number} — admin edit`
                   : "Price (locked — invoiced)"
-                : "Quote"
+                : "Price — fill in when they go ahead"
             }
           >
             {adminEditingInvoice && editable && (
@@ -290,14 +305,14 @@ export default async function ApplicationPage({
                 </dd>
               </div>
               <div className="rounded-lg bg-navy/[0.03] p-3">
-                <dt className="text-xs text-navy/50">Paid</dt>
+                <dt className="text-xs text-navy/50">{paid > 0 && owed > 0 ? "Advance paid" : "Paid"}</dt>
                 <dd className="font-bold tabular-nums">{money(paid)}</dd>
               </div>
               <div
                 className={`rounded-lg p-3 ${owed > 0 ? "bg-red-50" : owed < 0 ? "bg-amber-50" : "bg-emerald-50"}`}
               >
                 <dt className="text-xs text-navy/50">
-                  {owed < 0 ? "Refund due" : "Balance"}
+                  {owed < 0 ? "Refund due" : owed > 0 ? "Balance pending" : "Balance"}
                 </dt>
                 <dd
                   className={`font-bold tabular-nums ${owed > 0 ? "text-red-700" : owed < 0 ? "text-amber-800" : "text-emerald-700"}`}
@@ -342,11 +357,6 @@ export default async function ApplicationPage({
             )}
           </Card>
 
-          {can.editSale(staff.role) && NEXT_STATUS[app.status].length > 0 && (
-            <Card title="Status">
-              <StatusButtons id={app.id} next={NEXT_STATUS[app.status]} />
-            </Card>
-          )}
 
           <Card
             title="Client"
@@ -392,14 +402,12 @@ export default async function ApplicationPage({
                   source: app.source,
                   consultant: app.consultant,
                   notes: app.notes,
-                  status: app.status,
+                  lead_status: app.lead_status,
                   issued_by: app.issued_by,
                   invoice_number: app.invoice_number,
                   invoice_date: app.invoice_date,
                   quotation_number: app.quotation_number,
                   quotation_date: app.quotation_date,
-                  submitted_at: app.submitted_at,
-                  decided_at: app.decided_at,
                 }}
               />
             ) : (

@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { FileCheck2, FileText } from "lucide-react";
-import { METHOD_LABEL, STATUS_LABEL } from "@/lib/format";
-import type { Status } from "@/lib/types";
+import { METHOD_LABEL } from "@/lib/format";
 import { money } from "@/lib/vat";
 import {
   Field,
@@ -19,7 +18,6 @@ import {
   convertToInvoice,
   issueQuotation,
   recordPayment,
-  setStatus,
   type ActionResult,
 } from "./actions";
 
@@ -105,37 +103,6 @@ export function DocumentButtons({
       {!ready && canIssue && !invoiceNumber && (
         <p className="text-xs text-navy/50">Save a quote with a company and a price to issue documents.</p>
       )}
-      <Result result={result} />
-    </div>
-  );
-}
-
-export function StatusButtons({ id, next }: { id: string; next: Status[] }) {
-  const { pending, result, run } = useAction();
-  if (next.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        {next.map((status) => (
-          <button
-            key={status}
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              if (status === "cancelled" && !confirm("Cancel this application?")) return;
-              run(() => setStatus(id, status));
-            }}
-            className={
-              status === "cancelled"
-                ? "rounded-lg px-3 py-1.5 text-sm font-bold text-red-600 hover:bg-red-50"
-                : secondaryButtonClass
-            }
-          >
-            {status === "cancelled" ? "Cancel application" : `Mark ${STATUS_LABEL[status].toLowerCase()}`}
-          </button>
-        ))}
-      </div>
       <Result result={result} />
     </div>
   );

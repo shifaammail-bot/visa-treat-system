@@ -25,16 +25,25 @@ export function ReportView({
   return (
     <div className="space-y-6">
       <div className={`grid gap-4 sm:grid-cols-2 ${showMargin ? "xl:grid-cols-5" : "xl:grid-cols-4"}`}>
-        <Stat label="Leads" value={String(report.leadCount)} sub={`${formatDate(report.period.from)} – ${formatDate(report.period.to)}`} />
-        <Stat label="Conversion" value={pct(report.conversion)} sub={`${report.convertedCount} of ${report.leadCount} invoiced`} />
+        <Stat label="Leads" value={String(report.leadCount)} sub={`${report.open} following up · ${report.lost} lost`} />
+        <Stat label="Conversion" value={pct(report.conversion)} sub={`${report.convertedCount} of ${report.leadCount} became sales`} />
         <Stat label="Income" value={money(report.income)} sub={`${report.invoiceCount} invoices`} />
         {showMargin && <Stat label="Profit" value={money(report.margin)} sub="(Selling − cost) × guests" />}
         <Stat label="Outstanding" value={money(report.outstanding)} sub={`${report.receivables.length} unpaid invoices, all time`} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Leads by source">
+        <Card title="Leads by channel">
           <BarList rows={report.bySource.map((g) => ({ label: g.key, value: g.value }))} />
+        </Card>
+
+        <Card title="Leads by brand">
+          <BarList
+            rows={report.leadsByBrand.map((g) => {
+              const issuer = issuerOf(g.key);
+              return { label: issuer?.trade_name ?? "Not set", value: g.value, colour: issuer?.accent_colour };
+            })}
+          />
         </Card>
 
         <Card title="Income by brand">

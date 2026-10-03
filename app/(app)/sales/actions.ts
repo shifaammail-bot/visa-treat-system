@@ -5,11 +5,11 @@ import { revalidatePath } from "next/cache";
 import { getCountries, getProducts } from "@/lib/catalogue";
 import { canSeeClient, getStaffList, requireStaff } from "@/lib/context";
 import { dbError } from "@/lib/db";
-import { VISA_TYPE_LABEL, dubaiDate } from "@/lib/format";
+import { CHANNEL_LABEL, VISA_TYPE_LABEL, dubaiDate, dubaiDatePlus } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { amount, parseQuote } from "@/lib/quote-input";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { PaymentMethod, VisaType } from "@/lib/types";
+import type { PaymentMethod, Source, VisaType } from "@/lib/types";
 
 export type SaleResult = { error: string; applicationId?: string } | null;
 
@@ -40,6 +40,9 @@ export async function createSale(_prev: SaleResult, formData: FormData): Promise
   const visaType = (product?.visa_type ?? text(formData, "visa_type")) as VisaType;
   if (!(visaType in VISA_TYPE_LABEL)) return { error: "Choose a visa type." };
 
+
+  const channel = text(formData, "source") as Source;
+  if (!(channel in CHANNEL_LABEL)) return { error: "Choose how the client found us (channel)." };
 
   // Payment taken now (invoices only).
   const paid = kind === "invoice" ? amount(formData, "paid_amount") : 0;
@@ -101,9 +104,12 @@ export async function createSale(_prev: SaleResult, formData: FormData): Promise
       consultant,
       client_id: clientId,
       visa_type: visaType,
-      source: "direct",
+      source: channel,
       notes: text(formData, "notes") || null,
       status: "quoted",
+      lead_status: kind === "invoice" ? "won" : "open",
+      closed_at: kind === "invoice" ? dubaiDate() : null,
+      next_follow_up: kind === "invoice" ? null : dubaiDatePlus(2),
     })
     .select("id")
     .single();
