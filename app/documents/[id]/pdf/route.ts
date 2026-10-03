@@ -1,9 +1,10 @@
 import { requireStaff } from "@/lib/context";
 import { loadDocument, parseKind } from "@/lib/documents";
-import { renderDocumentPdf } from "@/lib/pdf/render";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The first PDF after a cold start loads fonts and the layout engine.
+export const maxDuration = 30;
 
 /**
  * GET /documents/:id/pdf?type=invoice|quotation[&download=1]
@@ -24,12 +25,17 @@ export async function GET(
 
   let pdf: Buffer;
   try {
+    // Loaded here, not at the top, so a failure while loading the PDF library
+    // or its fonts is caught and reported instead of crashing the function.
+    const { renderDocumentPdf } = await import("@/lib/pdf/render");
     pdf = await renderDocumentPdf(data);
   } catch (error) {
     // Shown on the document page, and in the server logs.
     console.error("PDF render failed", params.id, error);
+    const e = error as Error;
+    const stack = (e?.stack ?? "").split("\n").slice(0, 6).join("\n");
     return new Response(
-      `PDF render failed: ${(error as Error)?.message ?? String(error)}`,
+      `PDF render failed: ${e?.message ?? String(error)}\n\n${stack}`,
       {
         status: 500,
         headers: { "Content-Type": "text/plain; charset=utf-8" },
