@@ -1,4 +1,5 @@
 -- Visa Treat — 005: admins may correct an issued invoice
+-- SUPERSEDED: do not run again. 008 and 012 replace this file.
 --
 -- Until now an invoice's figures were frozen the moment it was numbered. An
 -- admin can now correct the visa description, guests, prices, cost and terms

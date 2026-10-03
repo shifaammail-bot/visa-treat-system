@@ -1,4 +1,5 @@
 -- Visa Treat — 006: admins may lower an invoice that is already paid
+-- SUPERSEDED: do not run again. 008 and 012 replace this file.
 --
 -- 005 refused an admin edit that took the total below what had been paid.
 -- That blocked correcting a fully paid invoice. The edit is now allowed; the
