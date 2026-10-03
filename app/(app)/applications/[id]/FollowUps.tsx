@@ -17,6 +17,8 @@ type Props = {
   firstNote: string | null;
   followUps: (FollowUp & { by: string })[];
   canEdit: boolean;
+  /** Reopening a lost lead is a correction: super admin only. */
+  canReopen: boolean;
   today: string;
   inTwoDays: string;
 };
@@ -32,7 +34,7 @@ function Submit({ lost }: { lost: boolean }) {
 
 /** The lead's contact history and the form for the next contact. */
 export function FollowUps(props: Props) {
-  const { id, leadStatus, nextFollowUp, lostReason, closedAt, createdAt, firstNote, followUps, canEdit, today, inTwoDays } =
+  const { id, leadStatus, nextFollowUp, lostReason, closedAt, createdAt, firstNote, followUps, canEdit, canReopen, today, inTwoDays } =
     props;
   const [state, action] = useFormState(logFollowUp, null);
   const [outcome, setOutcome] = useState<"follow_up" | "lost">("follow_up");
@@ -64,7 +66,7 @@ export function FollowUps(props: Props) {
             {closedAt ? ` on ${formatDate(closedAt)}` : ""}
             {lostReason ? ` — ${lostReason}` : ""}.
           </p>
-          {canEdit && (
+          {canReopen && (
             <button
               type="button"
               disabled={pending}

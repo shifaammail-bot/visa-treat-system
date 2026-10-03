@@ -191,7 +191,6 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
           <View style={{ width: "40%" }}>
             <MetaRow label={kind === "invoice" ? "Invoice no." : "Quotation no."} value={number} />
             <MetaRow label="Date" value={formatDate(date)} />
-            <MetaRow label="Our reference" value={app.ref} />
             {kind === "invoice" && app.quotation_number ? <MetaRow label="Quotation" value={app.quotation_number} /> : null}
           </View>
         </View>

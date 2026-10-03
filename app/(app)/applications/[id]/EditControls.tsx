@@ -27,6 +27,7 @@ import {
 } from "@/components/ui";
 import {
   deletePayment,
+  deleteSale,
   saveDetails,
   updatePayment,
   type ActionResult,
@@ -350,6 +351,33 @@ export function PaymentEditor({
           </div>
         </form>
       )}
+    </div>
+  );
+}
+
+/** Delete the whole lead or sale. Super admin only; asks twice. */
+export function DeleteSale({ id, label }: { id: string; label: string }) {
+  const [pending, start] = useTransition();
+  const [result, setResult] = useState<ActionResult>(null);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-navy/60">
+        Removes {label} with its payments and follow-ups. The client stays. This can&apos;t be undone.
+      </p>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          if (!confirm(`Delete ${label}? Its payments and follow-ups are deleted too.`)) return;
+          if (!confirm("Are you sure? This can't be undone.")) return;
+          start(async () => setResult(await deleteSale(id)));
+        }}
+        className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
+      >
+        <Trash2 className="h-4 w-4" />
+        {pending ? "Deleting…" : `Delete ${label}`}
+      </button>
+      {result?.error && <Notice tone="error">{result.error}</Notice>}
     </div>
   );
 }

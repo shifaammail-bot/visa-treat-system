@@ -40,7 +40,10 @@ export function LeadsTable({ rows, issuers, staffName, today, empty }: Props) {
             <tr key={r.id} className="hover:bg-navy/[0.02]">
               <td className={tdClass}>
                 <TableLink href={`/applications/${r.id}`}>{r.client?.full_name ?? "—"}</TableLink>
-                <p className="text-xs text-navy/50">{r.client?.phone ?? r.client?.email ?? ""}</p>
+                <p className="text-xs text-navy/50">
+                  {r.ref}
+                  {r.client?.phone || r.client?.email ? ` · ${r.client?.phone ?? r.client?.email}` : ""}
+                </p>
               </td>
               <td className={tdClass}>
                 <p>{r.country?.name ?? r.country_code}</p>

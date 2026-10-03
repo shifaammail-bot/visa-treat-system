@@ -64,7 +64,7 @@ export async function canSeeClient(
   staff: Staff,
   client: { id: string; created_by: string | null }
 ): Promise<boolean> {
-  if (staff.role === "admin" || staff.role === "accounts") return true;
+  if (staff.role === "super_admin" || staff.role === "admin" || staff.role === "accounts") return true;
   if (staff.role === "manager" && !brandLimit(staff)) return true;
   if (staff.role === "consultant" && client.created_by?.toLowerCase() === staff.email.toLowerCase()) {
     return true;

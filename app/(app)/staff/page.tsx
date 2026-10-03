@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui";
 import { CreateStaffForm, EditStaffForm, type StaffRow } from "./StaffForms";
 
-const ROLE_LABEL = { admin: "Admin", manager: "Manager", consultant: "Consultant", accounts: "Accounts" };
+const ROLE_LABEL = { super_admin: "Super admin", admin: "Admin", manager: "Manager", consultant: "Consultant", accounts: "Accounts" };
 
 export default async function StaffPage() {
   const { staff: me } = await getContext();

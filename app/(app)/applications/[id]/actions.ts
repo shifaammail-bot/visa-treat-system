@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { dbError } from "@/lib/db";
 import {
   FOLLOW_UP_METHOD_LABEL,
@@ -224,8 +225,8 @@ export async function saveDetails(
   const staff = await requireStaff();
   const id = text(formData, "id");
   const app = await loadApplication(id, staff);
-  if (!can.editSale(staff.role))
-    return { error: "Your role can't change sale details." };
+  if (!can.correct(staff.role))
+    return { error: "Only the super admin can change recorded details." };
   const isAdmin = can.editIssuedInvoice(staff.role);
 
   const countryCode = text(formData, "country_code");
@@ -320,7 +321,7 @@ export async function updatePayment(
 ): Promise<ActionResult> {
   const staff = await requireStaff();
   if (!can.editIssuedInvoice(staff.role))
-    return { error: "Only an admin can change a recorded payment." };
+    return { error: "Only the super admin can change a recorded payment." };
   const id = text(formData, "id");
   const paymentId = text(formData, "payment_id");
   await loadApplication(id, staff);
@@ -355,7 +356,7 @@ export async function deletePayment(
 ): Promise<ActionResult> {
   const staff = await requireStaff();
   if (!can.editIssuedInvoice(staff.role))
-    return { error: "Only an admin can remove a payment." };
+    return { error: "Only the super admin can remove a payment." };
   await loadApplication(id, staff);
   const { error } = await createAdminClient()
     .from("payments")
@@ -420,7 +421,7 @@ export async function logFollowUp(_prev: ActionResult, formData: FormData): Prom
 export async function reopenLead(id: string): Promise<ActionResult> {
   const staff = await requireStaff();
   const app = await loadApplication(id, staff);
-  if (!can.editSale(staff.role)) return { error: "Your role can't update leads." };
+  if (!can.correct(staff.role)) return { error: "Only the super admin can reopen a lead." };
   if (app.lead_status !== "lost") return { error: "Only a lost lead can be reopened." };
 
   const { error } = await createAdminClient()
@@ -430,4 +431,23 @@ export async function reopenLead(id: string): Promise<ActionResult> {
   if (error) return { error: dbError(error.message) };
   refresh(id);
   return { ok: "Lead reopened. Follow up today." };
+}
+
+/**
+ * Delete a lead or sale entirely: its payments, follow-ups and the record.
+ * Super admin only. The client record stays.
+ */
+export async function deleteSale(id: string): Promise<ActionResult> {
+  const staff = await requireStaff();
+  if (!can.correct(staff.role)) return { error: "Only the super admin can delete." };
+  await loadApplication(id, staff);
+
+  const admin = createAdminClient();
+  const { error: payError } = await admin.from("payments").delete().eq("application_id", id);
+  if (payError) return { error: dbError(payError.message) };
+  const { error } = await admin.from("visa_applications").delete().eq("id", id);
+  if (error) return { error: dbError(error.message) };
+
+  for (const path of ["/", "/leads", "/invoices", "/quotations", "/clients", "/reports"]) revalidatePath(path);
+  redirect("/leads");
 }

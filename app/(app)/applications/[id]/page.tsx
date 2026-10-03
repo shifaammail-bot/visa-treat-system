@@ -25,7 +25,7 @@ import { SaleSteps } from "@/components/SaleSteps";
 import { Card, LeadBadge, Notice, TableLink } from "@/components/ui";
 import { DocumentButtons, PaymentForm } from "./Controls";
 import { FollowUps } from "./FollowUps";
-import { DetailsForm, PaymentEditor } from "./EditControls";
+import { DeleteSale, DetailsForm, PaymentEditor } from "./EditControls";
 import { QuoteForm } from "./QuoteForm";
 
 function Row({
@@ -89,7 +89,8 @@ export default async function ApplicationPage({
   const issuer = allIssuers.find((i) => i.id === app.issued_by) ?? null;
   const showCosts = can.seeCosts(staff.role);
   // Admins can correct anything on any sale; others edit until it's invoiced.
-  const isAdmin = can.editIssuedInvoice(staff.role);
+  // Only the super admin changes or deletes what's already recorded.
+  const isAdmin = can.correct(staff.role);
   const adminEditingInvoice = !!app.invoice_number && isAdmin;
   const editable =
     can.editSale(staff.role) &&
@@ -149,6 +150,7 @@ export default async function ApplicationPage({
                 firstNote={app.notes}
                 followUps={followUps.map((f) => ({ ...f, by: nameOf(staffList, f.created_by) }))}
                 canEdit={can.editSale(staff.role)}
+                canReopen={isAdmin}
                 today={dubaiDate()}
                 inTwoDays={dubaiDatePlus(2)}
               />
@@ -167,7 +169,7 @@ export default async function ApplicationPage({
             {adminEditingInvoice && editable && (
               <div className="mb-5">
                 <Notice tone="warn">
-                  You&apos;re editing an issued invoice as an admin. Changes
+                  You&apos;re editing an issued invoice as super admin. Changes
                   show on the PDF straight away. The number, dates and status
                   are under Sale details. Each edit records your name and the
                   time.
@@ -381,7 +383,7 @@ export default async function ApplicationPage({
           </Card>
 
           <Card title="Sale details">
-            {can.editSale(staff.role) ? (
+            {isAdmin ? (
               <DetailsForm
                 id={app.id}
                 isAdmin={isAdmin}
@@ -441,6 +443,12 @@ export default async function ApplicationPage({
               </>
             )}
           </Card>
+
+          {isAdmin && (
+            <Card title="Delete">
+              <DeleteSale id={app.id} label={app.invoice_number ? `invoice ${app.invoice_number}` : `lead ${app.ref}`} />
+            </Card>
+          )}
         </div>
       </div>
     </>

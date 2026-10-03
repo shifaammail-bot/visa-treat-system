@@ -33,6 +33,7 @@ const ICONS: Record<NavItem["icon"], React.ComponentType<{ className?: string }>
 };
 
 const ROLE_LABEL = {
+  super_admin: "Super admin",
   admin: "Admin",
   manager: "Manager",
   consultant: "Consultant",

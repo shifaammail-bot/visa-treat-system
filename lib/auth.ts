@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type Role = "admin" | "manager" | "consultant" | "accounts";
+export type Role = "super_admin" | "admin" | "manager" | "consultant" | "accounts";
 
 export type Staff = {
   email: string;

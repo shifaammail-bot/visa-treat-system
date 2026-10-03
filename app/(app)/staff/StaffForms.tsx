@@ -21,7 +21,8 @@ const ROLE_OPTIONS: { value: Role; label: string; hint: string }[] = [
   { value: "consultant", label: "Consultant", hint: "Own leads and applications only. No costs." },
   { value: "manager", label: "Manager", hint: "Everything for their brands." },
   { value: "accounts", label: "Accounts", hint: "All invoices and payments. Can't edit clients." },
-  { value: "admin", label: "Admin", hint: "Everything, including staff." },
+  { value: "admin", label: "Admin", hint: "Sees everything; adds leads, invoices and payments. Can't change what's recorded." },
+  { value: "super_admin", label: "Super admin", hint: "Everything, including editing and deleting invoices, leads, payments and staff." },
 ];
 
 function Submit({ children, className = buttonClass }: { children: React.ReactNode; className?: string }) {

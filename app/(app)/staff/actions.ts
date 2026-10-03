@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type FormResult = { error?: string; ok?: string } | null;
 
-const ROLES: Role[] = ["admin", "manager", "consultant", "accounts"];
+const ROLES: Role[] = ["super_admin", "admin", "manager", "consultant", "accounts"];
 
 async function requireAdmin() {
   const staff = await requireStaff();
@@ -95,7 +95,7 @@ export async function updateStaff(_prev: FormResult, formData: FormData): Promis
   if (!ROLES.includes(role)) return { error: "Choose a role." };
 
   const isMe = email.toLowerCase() === me.email.toLowerCase();
-  if (isMe && (role !== "admin" || !active)) {
+  if (isMe && (role !== me.role || !active)) {
     return { error: "You can't remove your own admin access. Ask another admin." };
   }
 
