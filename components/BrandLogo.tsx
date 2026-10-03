@@ -16,22 +16,17 @@ type Props = {
  * most Windows machines don't have.
  */
 function VisaTreatLogo({ on, className }: { on: "dark" | "light"; className: string }) {
+  // Wordmark only (no V mark). textLength keeps it inside the box whatever
+  // the font's exact widths, so it never clips.
   return (
-    <svg viewBox="0 0 560 150" className={`w-auto ${className}`} role="img" aria-label="Visa Treat">
-      <path
-        d="M34 46 L66 106 L98 46"
-        fill="none"
-        stroke="#2FE0C2"
-        strokeWidth="18"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 330 80" className={`w-auto ${className}`} role="img" aria-label="VisaTreat">
       <text
-        x="122"
-        y="100"
-        fontSize="68"
+        x="0"
+        y="64"
+        fontSize="76"
         fontWeight="800"
-        letterSpacing="-2"
+        textLength="328"
+        lengthAdjust="spacingAndGlyphs"
         style={{ fontFamily: "var(--font-manrope), system-ui, sans-serif" }}
       >
         <tspan fill={on === "dark" ? "#FFFFFF" : "#0B0C10"}>Visa</tspan>

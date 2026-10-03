@@ -58,7 +58,7 @@ export function Sidebar({ items, staff, canSell }: Props) {
     <>
       {/* Mobile top bar */}
       <div className="flex items-center justify-between border-b border-navy/10 bg-white px-4 py-3 md:hidden">
-        <BrandLogo slug="visatreat" tradeName="Visa Treat" accentColour="#2FE0C2" on="light" className="h-6" />
+        <BrandLogo slug="visatreat" tradeName="Visa Treat" accentColour="#2FE0C2" on="light" className="h-7" />
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -76,8 +76,7 @@ export function Sidebar({ items, staff, canSell }: Props) {
       >
         {/* All sales are Visa Treat's; the issuing company is chosen per quote. */}
         <div className="hidden px-5 pb-4 pt-5 md:block">
-          <BrandLogo slug="visatreat" tradeName="Visa Treat" accentColour="#2FE0C2" on="light" className="h-10" />
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.25em] text-navy/40">Desk</p>
+          <BrandLogo slug="visatreat" tradeName="VisaTreat" accentColour="#2FE0C2" on="light" className="h-11" />
         </div>
 
         {canSell && (
