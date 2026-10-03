@@ -152,7 +152,6 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
   const guests = app.quantity;
   const total = num(app.grand_total);
   const vat = taxInvoice ? num(app.vat_amount) : 0;
-  const serviceTotal = num(app.service_charge) * guests;
   const owed = balance(total, payments.map((p) => ({ amount: num(p.amount) })));
   const paid = Math.round((total - owed) * 100) / 100;
 
@@ -240,8 +239,8 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
           <View style={{ width: "46%" }}>
             {taxInvoice && (
               <>
-                <TotalRow label="Subtotal (excl. VAT)" value={money(total - vat)} />
-                <TotalRow label={`VAT 5% on service fees of ${money(serviceTotal)}`} value={money(vat)} />
+                <TotalRow label="Taxable amount" value={money(app.taxable_amount)} />
+                <TotalRow label="VAT 5%" value={money(vat)} />
               </>
             )}
             <TotalRow label={taxInvoice ? "Total incl. VAT (AED)" : "Total (AED)"} value={money(total)} grand />
@@ -253,11 +252,6 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
                   <Text style={{ fontSize: 9, fontWeight: 700 }}>{money(Math.abs(owed))}</Text>
                 </View>
               </View>
-            )}
-            {taxInvoice && (
-              <Text style={{ fontSize: 6.5, color: MUTED, textAlign: "right", marginTop: 4, lineHeight: 1.4 }}>
-                Taxable amount {money(app.taxable_amount)}. VAT is included in the service fee, not added on top.
-              </Text>
             )}
           </View>
         </View>
