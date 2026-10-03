@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         {seesLeads && (
           <Card
             title={due.length ? `Follow-ups due (${due.length})` : "Follow-ups due"}
-            action={<TableLink href="/leads">All leads</TableLink>}
+            action={<TableLink href="/leads?status=due">See all due</TableLink>}
           >
             {due.length === 0 ? (
               <p className="text-sm text-navy/60">Nothing due today. Every open lead has a follow-up date ahead.</p>
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
             )}
             {due.length > 8 && (
               <p className="mt-3 text-sm">
-                <TableLink href="/leads">See all {due.length} due</TableLink>
+                <TableLink href="/leads?status=due">See all {due.length} due</TableLink>
               </p>
             )}
           </Card>

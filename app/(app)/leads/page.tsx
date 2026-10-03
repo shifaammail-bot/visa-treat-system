@@ -14,18 +14,18 @@ import { buttonClass } from "@/components/ui";
 type View = "due" | "open" | "won" | "lost" | "all";
 
 const TABS: { label: string; value: View }[] = [
+  { label: "All", value: "all" },
   { label: "Due today & overdue", value: "due" },
   { label: "Following up", value: "open" },
   { label: "Won", value: "won" },
   { label: "Lost", value: "lost" },
-  { label: "All", value: "all" },
 ];
 
 export default async function LeadsPage({ searchParams }: { searchParams: { q?: string; status?: string } }) {
   const ctx = await getContext();
   if (!can.createLead(ctx.staff.role)) notFound();
 
-  const view: View = TABS.some((t) => t.value === searchParams.status) ? (searchParams.status as View) : "due";
+  const view: View = TABS.some((t) => t.value === searchParams.status) ? (searchParams.status as View) : "all";
   const lead: LeadStatus[] | undefined = view === "open" || view === "won" || view === "lost" ? [view] : undefined;
 
   const [rows, staffList] = await Promise.all([
@@ -48,8 +48,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: { q?: 
         <ListToolbar
           path="/leads"
           search={searchParams.q}
-          tabs={TABS.map((t) => ({ label: t.label, value: t.value === "due" ? "" : t.value }))}
-          active={view === "due" ? "" : view}
+          tabs={TABS.map((t) => ({ label: t.label, value: t.value === "all" ? "" : t.value }))}
+          active={view === "all" ? "" : view}
         />
         <LeadsTable
           rows={rows}
