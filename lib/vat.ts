@@ -12,6 +12,9 @@
  * invoice. They must agree, and tests/vat.spec.ts checks that they do.
  */
 
+import { balance as feeBalance, marginInclusive, saleTotals } from "@/lib/costing"
+import { formatAed, fromNumeric, toNumeric, type Fils } from "@/lib/money"
+
 /** UAE VAT. Unchanged since 2018, and not a figure to make configurable. */
 export const VAT_RATE = 0.05
 
@@ -32,9 +35,11 @@ export type VatSplit = {
   taxable_supply: boolean
 }
 
-const round2 = (value: number): number => Math.round(value * 100) / 100
-
-const positive = (value: number): number => (Number.isFinite(value) ? Math.max(0, value) : 0)
+// Since the money foundation, every figure here is worked out in integer fils
+// (lib/money.ts, lib/costing.ts) and only turned back into AED at the end, so
+// none of this arithmetic runs in floating point. The results are unchanged;
+// tests/vat.spec.ts and tests/money.spec.ts hold them to the trigger.
+const toFils = (value: number): Fils => (Number.isFinite(value) ? Math.max(0, fromNumeric(value)) : 0)
 
 /**
  * Splits a visa sale into its taxable part and its tax.
@@ -67,21 +72,12 @@ export function vatSplit(
 ): VatSplit {
   // A document is for at least one person. Zero would make the whole thing
   // free, which is never what an empty or mistyped field means.
-  const people = Math.max(1, Math.floor(positive(quantity)) || 1)
-  const grandTotal = round2(positive(sellingPrice) * people)
-
-  if (!vatRegistered) {
-    return { taxable: 0, vat: 0, grandTotal, taxable_supply: false }
-  }
-
-  const charged = positive(serviceCharge) * people
-  const taxable = round2(charged / (1 + VAT_RATE))
-
+  const totals = saleTotals(toFils(sellingPrice), toFils(serviceCharge), quantity, vatRegistered)
   return {
-    taxable,
-    vat: round2(taxable * VAT_RATE),
-    grandTotal,
-    taxable_supply: true,
+    taxable: toNumeric(totals.taxable),
+    vat: toNumeric(totals.vat),
+    grandTotal: toNumeric(totals.grandTotal),
+    taxable_supply: vatRegistered,
   }
 }
 
@@ -97,15 +93,13 @@ export function margin(
   governmentFee: number,
   quantity = 1
 ): number {
-  const people = Math.max(1, Math.floor(positive(quantity)) || 1)
-  return round2((positive(sellingPrice) - positive(costPrice) - positive(governmentFee)) * people)
+  return toNumeric(marginInclusive(toFils(sellingPrice), toFils(costPrice), toFils(governmentFee), quantity))
 }
 
 /** "AED 789.00" — two decimals, because these go on a tax invoice. */
 export const money = (value: number | null | undefined): string => {
   const n = Number(value ?? 0)
-  const safe = Number.isFinite(n) ? n : 0
-  return `AED ${safe.toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatAed(Number.isFinite(n) ? fromNumeric(n) : 0)
 }
 
 /**
@@ -116,6 +110,5 @@ export const money = (value: number | null | undefined): string => {
  * knows which is right.
  */
 export function balance(grandTotal: number, payments: readonly { amount: number }[]): number {
-  const paid = payments.reduce((sum, payment) => sum + positive(payment.amount), 0)
-  return round2(positive(grandTotal) - paid)
+  return toNumeric(feeBalance(toFils(grandTotal), payments.map((p) => toFils(p.amount))))
 }

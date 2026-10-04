@@ -1,5 +1,6 @@
 import { dubaiDate, num } from "@/lib/format";
 import type { Source, Status, VisaType } from "@/lib/types";
+import { addAed, sumAed } from "@/lib/money";
 import { margin } from "@/lib/vat";
 
 /**
@@ -37,7 +38,7 @@ export const isSold = (r: SaleRow) => !!r.invoice_number && r.status !== "cancel
 export const profitOf = (r: SaleRow) =>
   margin(num(r.selling_price), num(r.cost_price), num(r.government_fee), r.quantity);
 
-const sum = (values: number[]) => Math.round(values.reduce((a, b) => a + b, 0) * 100) / 100;
+const sum = (values: number[]) => sumAed(values);
 
 /** "2026-10" from a date or timestamp, in Dubai time. */
 export const monthOf = (value: string) =>
@@ -133,7 +134,7 @@ export function summariseWeeks(rows: SaleRow[], month: string): WeekSummary[] {
       const sold = weekOf(r.invoice_date);
       if (sold) {
         sold.sold += 1;
-        sold.profit = Math.round((sold.profit + profitOf(r)) * 100) / 100;
+        sold.profit = addAed(sold.profit, profitOf(r));
       }
     }
   }

@@ -16,6 +16,7 @@ import {
   type SaleRow,
 } from "@/lib/profit";
 import { loadSales } from "@/lib/reports";
+import { addAed } from "@/lib/money";
 import { money } from "@/lib/vat";
 import { PageHeader } from "@/components/PageHeader";
 import { MiniRunway, Runway } from "@/components/Runway";
@@ -194,7 +195,7 @@ export default async function ReportsPage({
           (() => {
             const weeks = summariseWeeks(rows, month);
             const totals = weeks.reduce(
-              (t, w) => ({ leads: t.leads + w.leads, sold: t.sold + w.sold, profit: t.profit + w.profit }),
+              (t, w) => ({ leads: t.leads + w.leads, sold: t.sold + w.sold, profit: addAed(t.profit, w.profit) }),
               { leads: 0, sold: 0, profit: 0 }
             );
             return (
