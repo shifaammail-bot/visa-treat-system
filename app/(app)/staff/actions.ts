@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { escapeLike, type Role } from "@/lib/auth";
 import { requireStaff } from "@/lib/context";
 import { getIssuers } from "@/lib/issuers";
+import { tryFils, toNumeric } from "@/lib/money";
 import { can } from "@/lib/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -28,8 +29,8 @@ async function parseBrands(formData: FormData, role: Role): Promise<string[] | n
 function parseTarget(formData: FormData): number | null {
   const raw = String(formData.get("monthly_target") ?? "").trim();
   if (!raw) return null;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+  const fils = tryFils(raw);
+  return fils !== null && fils >= 0 ? toNumeric(fils) : null;
 }
 
 /** Finds a Supabase Auth user by email (the admin API has no direct lookup). */

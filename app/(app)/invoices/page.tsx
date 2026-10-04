@@ -3,8 +3,8 @@ import { Plus } from "lucide-react";
 import { getContext, getStaffList, nameOf } from "@/lib/context";
 import { can } from "@/lib/permissions";
 import { balanceOf, listApplications } from "@/lib/queries";
+import { sumAed } from "@/lib/money";
 import { money } from "@/lib/vat";
-import { num } from "@/lib/format";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { ListToolbar } from "@/components/ListToolbar";
 import { PageHeader } from "@/components/PageHeader";
@@ -20,8 +20,8 @@ export default async function InvoicesPage({ searchParams }: { searchParams: { q
   const unpaidOnly = searchParams.status === "unpaid";
   const rows = unpaidOnly ? all.filter((r) => r.status !== "cancelled" && balanceOf(r) > 0) : all;
   const live = all.filter((r) => r.status !== "cancelled");
-  const invoiced = live.reduce((s, r) => s + num(r.grand_total), 0);
-  const outstanding = live.reduce((s, r) => s + Math.max(balanceOf(r), 0), 0);
+  const invoiced = sumAed(live.map((r) => r.grand_total));
+  const outstanding = sumAed(live.map((r) => Math.max(balanceOf(r), 0)));
 
   return (
     <>

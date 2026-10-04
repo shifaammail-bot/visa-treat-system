@@ -3,6 +3,7 @@ import { SOURCE_LABEL, dubaiDate, num } from "@/lib/format";
 import { balanceOf } from "@/lib/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Source, Status } from "@/lib/types";
+import { addAed, sumAed } from "@/lib/money";
 import { margin } from "@/lib/vat";
 import type { SaleRow } from "@/lib/profit";
 
@@ -44,7 +45,7 @@ function group<T>(rows: T[], key: (r: T) => string, value: (r: T) => number = ()
   for (const row of rows) {
     const k = key(row);
     const g = map.get(k) ?? { key: k, value: 0, count: 0 };
-    g.value += value(row);
+    g.value = addAed(g.value, value(row));
     g.count += 1;
     map.set(k, g);
   }
@@ -79,10 +80,9 @@ export async function buildReport(ctx: Context, period: Period) {
     .map((r) => ({ ...r, owed: balanceOf(r) }))
     .sort((a, b) => b.owed - a.owed);
 
-  const income = invoiced.reduce((s, r) => s + num(r.grand_total), 0);
-  const marginTotal = invoiced.reduce(
-    (s, r) => s + margin(num(r.selling_price), num(r.cost_price), num(r.government_fee), r.quantity),
-    0
+  const income = sumAed(invoiced.map((r) => r.grand_total));
+  const marginTotal = sumAed(
+    invoiced.map((r) => margin(num(r.selling_price), num(r.cost_price), num(r.government_fee), r.quantity)),
   );
 
   return {
@@ -93,7 +93,7 @@ export async function buildReport(ctx: Context, period: Period) {
     income,
     invoiceCount: invoiced.length,
     margin: marginTotal,
-    outstanding: receivables.reduce((s, r) => s + r.owed, 0),
+    outstanding: sumAed(receivables.map((r) => r.owed)),
     receivables,
     bySource: group(leads, (r) => (r.source ? SOURCE_LABEL[r.source] : "Not recorded")),
     leadsByBrand: group(leads, (r) => r.issued_by ?? "none"),

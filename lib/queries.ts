@@ -2,6 +2,7 @@ import { scopeApplications, type Context } from "@/lib/context";
 import { dubaiDate, num } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { APPLICATION_ROW_SELECT, type ApplicationRow, type LeadStatus, type Status } from "@/lib/types";
+import { sumAed } from "@/lib/money";
 import { balance } from "@/lib/vat";
 
 type ListOptions = {
@@ -46,7 +47,7 @@ export async function listApplications(ctx: Context, opts: ListOptions = {}): Pr
 }
 
 export const paidOf = (row: { payments: { amount: number }[] }) =>
-  row.payments.reduce((sum, p) => sum + num(p.amount), 0);
+  sumAed(row.payments.map((p) => p.amount));
 
 export const balanceOf = (row: { grand_total: number; payments: { amount: number }[] }) =>
   balance(num(row.grand_total), row.payments.map((p) => ({ amount: num(p.amount) })));

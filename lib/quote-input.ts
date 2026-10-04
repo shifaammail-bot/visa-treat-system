@@ -1,6 +1,7 @@
 import type { Staff } from "@/lib/auth";
 import { PLACEHOLDER_TERMS, getProducts } from "@/lib/catalogue";
 import { allowedIssuers, getIssuers } from "@/lib/issuers";
+import { tryFils, toNumeric } from "@/lib/money";
 import { can } from "@/lib/permissions";
 
 export type QuoteValues = {
@@ -25,8 +26,9 @@ const text = (formData: FormData, key: string) =>
 export function amount(formData: FormData, key: string): number | null {
   const raw = text(formData, key);
   if (raw === "") return 0;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : null;
+  // Parsed as fils: rejects junk, negatives and more than two decimals.
+  const fils = tryFils(raw);
+  return fils !== null && fils >= 0 ? toNumeric(fils) : null;
 }
 
 /**

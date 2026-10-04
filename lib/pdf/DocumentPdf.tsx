@@ -5,6 +5,7 @@ import { Document, Font, Image, Page, Path, StyleSheet, Svg, Text, View } from "
 import { brandFor, type BrandTheme } from "@/lib/brands";
 import type { DocumentData } from "@/lib/documents";
 import { formatDate, num } from "@/lib/format";
+import { fromNumeric, toNumeric } from "@/lib/money";
 import { balance, money } from "@/lib/vat";
 
 /*
@@ -153,7 +154,7 @@ export function DocumentPdf({ data }: { data: DocumentData }) {
   const total = num(app.grand_total);
   const vat = taxInvoice ? num(app.vat_amount) : 0;
   const owed = balance(total, payments.map((p) => ({ amount: num(p.amount) })));
-  const paid = Math.round((total - owed) * 100) / 100;
+  const paid = toNumeric(fromNumeric(total) - fromNumeric(owed));
 
   const terms = (app.terms ?? "")
     .split("\n")
